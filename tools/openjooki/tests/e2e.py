@@ -421,7 +421,7 @@ with sync_playwright() as p:
     check("E18 timer cancelled", not J.get("bedtime.sleep") and pg.locator(".player .sleepmini").count() == 0)
     pg.click("[data-sleep-min='track']"); J.wait(lambda: J.get("bedtime.sleep.mode") == "track")
     pg.wait_for_selector("text=Arrêt à la fin de ce morceau")
-    check("E18 'end of chapter' timer", True)
+    check("E18 'end of song' timer", pg.locator("[data-sleep-min='track']").inner_text() == "Fin du morceau")
     pg.click("[data-k=sleepoff]"); pg.keyboard.press("Escape")
     # E19 audiobook: put the chapters back in order, resume shown, start again
     pierre = pl_by_title("Pierre et le Loup")
