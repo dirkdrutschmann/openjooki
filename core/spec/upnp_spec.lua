@@ -179,15 +179,15 @@ describe("services.upnp — requests", function()
     assert_eq(out_of(upnp.request(d, "avt", "GetCurrentTransportActions", { InstanceID = "0" })).Actions, "")
   end)
 
-  it("refuses a song it cannot read (AAC, MP4) or an address that is not http(s)", function()
+  it("refuses unsupported media and accepts HTTP and HTTPS addresses", function()
     local d = doc_with()
     local aac = DIDL:gsub("audio/flac", "audio/mp4")
     assert_eq(upnp.request(d, "avt", "SetAVTransportURI", { InstanceID = "0", CurrentURI = SONG, CurrentURIMetaData = aac }).fault.code, 714)
     assert_eq(upnp.request(d, "avt", "SetAVTransportURI", { InstanceID = "0", CurrentURI = "file:///etc/passwd", CurrentURIMetaData = "" }).fault.code, 714)
     assert_eq(upnp.request(d, "avt", "SetAVTransportURI", { InstanceID = "0", CurrentURI = "http://a/b c", CurrentURIMetaData = "" }).fault.code, 714)
-    -- https: the Jooki's player has no TLS, refused at once with a word on why
+    -- HTTPS: the installed GIO GnuTLS backend handles the encrypted connection.
     local r = upnp.request(d, "avt", "SetAVTransportURI", { InstanceID = "0", CurrentURI = "https://cdn.example/a.flac", CurrentURIMetaData = "" })
-    assert_eq(r.fault.code, 714); assert_match(r.fault.text, "https")
+    assert_nil(r.fault); assert_eq(r.event.uri, "https://cdn.example/a.flac")
     -- no metadata: tried (the player says it if it cannot)
     assert_nil(upnp.request(d, "avt", "SetAVTransportURI", { InstanceID = "0", CurrentURI = SONG, CurrentURIMetaData = "" }).fault)
   end)

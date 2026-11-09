@@ -1,8 +1,8 @@
 -- services.upnp: the Jooki as a UPnP / DLNA music player ("renderer", #29).
 -- An app on the phone or a NAS (BubbleUPnP, mconnect, a TIDAL or Qobuz app that "casts" to UPnP,
--- a music server) finds the Jooki on the home network and sends it a song: an http:// address the
--- Jooki's own player fetches and plays, like a web radio. Off by default: Settings > Play from other
--- apps (audiocfg.upnp, services.device).
+-- a music server) finds the Jooki on the home network and sends it a song: an http:// or https://
+-- address the Jooki's own player fetches and plays, like a web radio. Off by default: Settings >
+-- Play from other apps (audiocfg.upnp, services.device).
 -- Pure: the device and service descriptions, the SOAP requests and their answers, what plays (from
 -- state.playback and state.upnp), the evented variables. The network side (SSDP, the HTTP routes,
 -- the event subscriptions) is adapters.upnp's; it calls `request` and emits what it returns.
@@ -494,10 +494,7 @@ function upnp.request(doc, key, action, args)
   if action == "GetCurrentTransportActions" then return out({ { "Actions", upnp.transport_actions(doc) } }) end
   if action == "SetAVTransportURI" then
     local uri = tostring(args.CurrentURI or ""):gsub("^%s+", ""):gsub("%s+$", "")
-    -- http only: the Jooki's player has no TLS (no GIO TLS module in the image), an https song
-    -- would never start; refused at once, the app can say it (or send it through its own proxy)
-    if uri:match("^https://") then return fault(714, "Illegal MIME-type: https is not supported, http only") end
-    if not uri:match("^http://[%w%[]") or #uri > 2048 or uri:find("[%c ]") then return fault(714, "Illegal MIME-type") end
+    if not uri:match("^https?://[%w%[]") or #uri > 2048 or uri:find("[%c ]") then return fault(714, "Illegal MIME-type") end
     local info = upnp.didl_info(args.CurrentURIMetaData)
     if not upnp.mime_ok(info.mime) then return fault(714, "Illegal MIME-type") end
     local r = out({})

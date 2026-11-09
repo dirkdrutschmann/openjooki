@@ -1,5 +1,13 @@
 # OpenJooki — Changelog
 
+## Next release — HTTPS streams
+- **HTTPS streams play on the Jooki.** Internet radio and UPnP / DLNA streams can use `https://`
+  URLs; certificate verification stays enabled and uses the Jooki's installed CA certificates.
+- For the tinkerers: ship the GIO GnuTLS backend built for the Jooki's MIPS32r2/musl system with
+  the A/B patch. The installer registers it with `gio-querymodules` on the spare partition and
+  checks the generated module cache before switching. The UPnP renderer now accepts both HTTP and
+  HTTPS URLs.
+
 ## OpenJooki 2.4.21 (6 November 2026) — Play from other apps
 - **Play from other apps (UPnP / DLNA)** (#29). The Jooki can now play music sent from an app on
   your phone or from a music server at home, over your Wi-Fi: BubbleUPnP (Android), mconnect
