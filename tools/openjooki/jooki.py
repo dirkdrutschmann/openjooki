@@ -323,7 +323,10 @@ PLAYER_LIB = "/jooki/lib/player.lib"
 # System files OpenJooki replaces (the original is kept once as <file>.openjooki-orig).
 SYSTEM_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "system")
 SYSTEM_FILES = {"/etc/syslog-ng/syslog-ng.conf": "syslog-ng.conf",   # logs stay on the Jooki
-                "/etc/init.d/rcS": "rcS"}                             # boot timestamps in dmesg
+                "/etc/init.d/rcS": "rcS",                             # boot timestamps in dmesg
+                "/usr/lib/gio/modules/libgiognutls.so": "libgiognutls.so"}
+GIO_TLS_MODULE = "/usr/lib/gio/modules/libgiognutls.so"
+GIO_MODULE_CACHE = "/usr/lib/gio/modules/giomodule.cache"
 # Only with the 2.0 core (--core): the start script without the 1 s wait before the player. The core
 # says its boot orders to the ESP32 again by itself; the 1.x program does not, so it keeps the original.
 # Also core-only: the boot script that applies the name chosen on the page (OJ_SET_NAME), and
@@ -529,7 +532,12 @@ def _md5_match(host, exp, prefix=""):
     return all(got.get(k) == v for k, v in exp.items())
 
 def webui_active_ok(host, lib, files):
-    return _md5_match(host, _webui_expected(lib, files))
+    if not _md5_match(host, _webui_expected(lib, files)):
+        return False
+    if GIO_TLS_MODULE in files:
+        r = ssh(host, "grep -q gnutls %s 2>/dev/null" % GIO_MODULE_CACHE)
+        return r.returncode == 0
+    return True
 
 def ab_webui(host, dry_run=False, core=None):
     """Install the new web page + application fixes via A/B (clone, write on the spare,
@@ -555,6 +563,7 @@ def ab_webui(host, dry_run=False, core=None):
     # keep the originals once (never overwritten afterwards)
     prep = mnt + ("R=%s; test -f $R%s.openjooki-orig || cp -a $R%s $R%s.openjooki-orig; mkdir -p $R%s; "
                   % (MP, PLAYER_LIB, PLAYER_LIB, PLAYER_LIB, WWW_ORIG))
+    prep += "mkdir -p $R/usr/lib/gio/modules; "
     for o in OLD_WWW:
         d = os.path.dirname(o)
         prep += ("if [ -e $R%s/%s ] && [ ! -e $R%s/%s ]; then mkdir -p $R%s/%s; mv $R%s/%s $R%s/%s; fi; "
@@ -587,6 +596,13 @@ def ab_webui(host, dry_run=False, core=None):
         r = ssh_bytes(host, mnt+"rm -rf %s.new && mkdir -p %s.new && tar -xf - -C %s.new && rm -rf %s && mv %s.new %s && sync && echo PUT_OK"
                       % (dst, dst, dst, dst, dst, dst), data=buf.getvalue(), timeout=180)
         if b"PUT_OK" not in r.stdout: log("write failed (%s/) -> aborting (boot unchanged)" % d); return 1
+    if GIO_TLS_MODULE in files:
+        cache = MP + GIO_MODULE_CACHE
+        command = ("/usr/libexec/gio-querymodules %s/usr/lib/gio/modules && "
+                   "grep -q gnutls %s && sync && echo GIO_TLS_OK") % (MP, cache)
+        r = ssh(host, mnt + command)
+        if "GIO_TLS_OK" not in r.stdout:
+            log("GIO TLS module registration failed -> aborting (boot unchanged): %s" % (r.stdout+r.stderr)[-300:]); return 1
     exp = _webui_expected(lib, files, root=MP)
     if not _md5_match(host, exp, prefix=mnt.replace("set -e; ", "")+" "):
         log("verification on the spare partition failed -> aborting (boot unchanged)"); return 1

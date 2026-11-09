@@ -252,8 +252,8 @@ R.expect("U11 the new song plays at once", lambda: j.np.get("uri") == SONG2 and 
 j.c.publish("/j/audio/input/error", json.dumps({"id": 7}))
 R.expect("U11b a player error: STOPPED, the event says it", lambda: state() == "STOPPED" and last_change("/avt").get("TransportState") == "STOPPED", 5,
          lambda: (state(), last_change("/avt")))
-check("U11b https is refused at once (no TLS in the Jooki's player)",
-      avt("SetAVTransportURI", ("CurrentURI", "https://cdn.example/a.flac"), ("CurrentURIMetaData", ""))[2] == 714)
+check("U11b HTTPS URI is accepted for playback through the GIO TLS backend",
+      avt("SetAVTransportURI", ("CurrentURI", "https://cdn.example/a.flac"), ("CurrentURIMetaData", ""))[2] is None)
 avt("Play", ("Speed", "1"))
 R.expect("U11b Play again after the error", lambda: state() == "PLAYING", 5, state)
 

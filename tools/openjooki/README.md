@@ -46,6 +46,9 @@ the core, its page and its system files there, **arms the U-Boot rollback**, **s
 then **verifies** and **commits** the trial; if in doubt it **returns** to the previous
 state (and even if it loses the network, U-Boot switches back on its own at power-up).
 The Jooki's original program is kept next to ours (`player.lib.openjooki-orig`).
+The system patch also installs the GIO GnuTLS module needed for HTTPS streams and builds GIO's
+module cache on the spare partition before switching. Its source and target ABI are documented in
+[`https/README.md`](https/README.md).
 Music and playlists are managed from the Jooki's own page, not from here.
 
 Backups go to `~/.openjooki/backups/`. A dedicated SSH key is created in
