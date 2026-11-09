@@ -25,13 +25,20 @@ the 1.x patched program and its `web_ctrl` emulator left with ADR-0012.
 (cd ../../.. && python3 tools/build/bundle.py)   # the core, into build/ at the repository root
 export PLAYER_LUA=core CORE_BUILD=$(cd ../../.. && pwd)/build
 ./make_media.sh && ./up.sh                    # test audio, broker, fake audio
+python3 test_volume_test.py                    # settings audition buttons, real core + MQTT/PCM peer + narrow German UI
 python3 test_device_controls.py               # web/dial arbitration, kids/night ceilings, legacy headphones and live capability changes
 python3 test_lights_off.py                    # scheduled/permanent darkness, global driver, persistence, parent code and browser
+python3 test_lights_cues.py                   # connected ten-second startup cue and immediate short heart presses
+python3 test_shutdown_lights.py               # three red flashes, silent manual shutdown; actual poweroff intercepted
 node test_i18n.js
 python3 test_german.py                        # German browser, narrow layout, picture search
 python3 test_backend.py && python3 test_bedtime.py && python3 test_net.py
 python3 test_security_backend.py && python3 e2e.py && python3 test_security.py
 python3 test_mqtt_lan.py                      # S57_oj-security.sh, real mosquitto: no core needed (gcc)
+python3 test_knob_start.py                     # the knob held left: back to the start, an audiobook forgets its place, short turns unchanged
+python3 test_guard.py                          # oj-guard.sh under busybox: a core that does not answer, back to the other partition, never in a loop
+python3 test_ha_connect.py                     # Home Assistant connecting: a loaded song stays, a sound gives it back
+python3 test_page_steady.py                    # a position report redraws nothing, a real change does
 python3 test_random_playlist_ui.py             # repeated playlist Play, inherited overrides and audiobook positions
 python3 test_random_spotify_bus.py             # confirmed mute, delayed metadata/shuffle, fresh starts and fast resume
 python3 test_spotify.py && python3 test_robustness.py && python3 test_loader.py

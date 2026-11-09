@@ -27,10 +27,13 @@ local COMBO = { "next", "prev", "vol_inc", "vol_dec" }
 --          do_fwd / do_rev were never written)
 --   "both": halfway (fwd / rew, knobs_ctrl.c's zones between the centre and next / prev) winds the track
 --   "wind": the knob only winds, halfway or all the way (the heart can change the song)
+--   "start": as "song", and held to the left for RESTART_HOLD_S: back to the start of the playlist,
+--          an audiobook forgets its place (#40: the children do it themselves, without the page)
 -- Winding: after SEEK_HOLD_S held, SEEK_STEP_S at every tick. A turn all the way crosses the halfway
 -- zone in a blink, so it never winds there. In "wind", a short turn all the way winds once.
 local SEEK_HOLD_S, SEEK_STEP_S = 1, 10
-local WINDERS = { song = {}, both = { fwd = 1, rew = -1 }, wind = { fwd = 1, rew = -1, next = 1, prev = -1 } }
+local RESTART_HOLD_S = 3   -- a child's short turn stays "previous song"
+local WINDERS = { song = {}, start = {}, both = { fwd = 1, rew = -1 }, wind = { fwd = 1, rew = -1, next = 1, prev = -1 } }
 local function knob_mode(doc)
   local m = (doc.audiocfg or {}).knob_mode
   return WINDERS[m] and m or "song"
@@ -61,6 +64,7 @@ local function tick_change(cmds, held_before, held)
 end
 
 function buttons.on_button(doc, ev)
+  if (doc.poweroff_int or {}).step then return nil end
   -- headphones plugged in or out: not a button (services.device reads the knobs again); held, it
   -- would keep the long-press tick running for as long as the headphones stay in
   if ev.button == "hp_plugged" then return nil end
@@ -109,6 +113,7 @@ end
 
 --- Long presses are detected on the tick (like 1.x): circle 2 s (5 s when the heart has a job) -> power off, airplane 5 s.
 function buttons.on_tick(doc, ev)
+  if (doc.poweroff_int or {}).step then return nil end
   local act = doc.activity
   if not act or not act.buttons then return nil end
   local now = ev.now
@@ -138,6 +143,11 @@ function buttons.on_tick(doc, ev)
   local quiet = (tonumber((doc.audiocfg or {}).volume) or 100) <= RESET_MAX_VOLUME
   local reset = act.buttons.prev and act.buttons.next and now - math.max(act.buttons.prev, act.buttons.next) >= LONG_RESET_S
   reset = reset or (act.buttons.prev and quiet and now - act.buttons.prev >= LONG_RESET_S)
+  -- with the volume all the way down, this hold is the parent-code gesture above: it keeps going
+  if not quiet and knob_mode(doc) == "start" and act.buttons.prev and now - act.buttons.prev >= RESTART_HOLD_S then
+    a2.buttons.prev = nil; changed = true   -- the release that follows does nothing
+    cmds[#cmds + 1] = emit("playback.restart", { now = now })
+  end
   if reset then
     a2.buttons.prev = nil; a2.buttons.next = nil; changed = true
     cmds[#cmds + 1] = emit("security.parent_clear", { physical = true })

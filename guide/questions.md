@@ -4,7 +4,7 @@
 No. They live on a part of the Jooki that updates never touch.
 
 **What if something goes wrong?**
-Switch the Jooki off and on again: it goes back to the previous version by itself.
+If the new version does not start properly, the Jooki goes back to the previous one by itself: give it five minutes.
 
 **My Jooki does not start at all, whatever I do.**
 Nine times out of ten its memory card (the SD card inside it) is dead.
@@ -89,11 +89,11 @@ In the Spotify app, *Forget this device* on the Jooki removes the Jooki's own ac
 account does it. Pick the Jooki again in the Spotify app, from the account the tokens should use:
 it becomes the Jooki's account again ([Use it](use.md#spotify)).
 
-**What are *Home automation* and *Maintenance access* in Settings?**
+**What are *Home automation* and *Maintenance access* in Settings → Advanced?**
 Two switches for tinkerers. Leave them off.
 
 **How do I connect Home Assistant?**
-In the Jooki's page, open Settings, then *Home automation*, and turn it on. The page then shows
+In the Jooki's page, open Settings, then *Advanced*, then *Home automation*, and turn it on. The page then shows
 four things: the host, the port (1883), the user (`jooki`) and a password. Home Assistant needs
 all four: in its MQTT settings, or in a bridge from its own Mosquitto (`remote_username` and
 `remote_password`). Without the user and password, the Jooki says no. Before 2.4.18, after the

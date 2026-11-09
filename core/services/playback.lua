@@ -22,11 +22,12 @@ local resume_rules = require("services.playback.resume")
 local queue = require("services.playback.queue")
 local has_offline, offline = pcall(require, "services.spotify_offline")
 local playback = {}
+local volume_test = require("services.device.volume_test")
 
 local MUSIC, SOUND = 7, 3
 local BACK_PAUSE, BACK_TIMER, MIN_BACK = resume_rules.BACK_PAUSE, resume_rules.BACK_TIMER, resume_rules.MIN_BACK
 local AUDIO_OUT = "/j/audio/out/"
-local INT = { last = true, shuffle = true, seed = true, sys = true, resume_dirty = true }   -- the playback_int keys
+local INT = { song_replaced = true, last = true, shuffle = true, seed = true, sys = true, resume_dirty = true }   -- the playback_int keys
 
 local copy, emit, is_playing = util.copy, util.emit, util.is_playing
 local queue_for, index_of, modes = queue.queue_for, queue.index_of, queue.modes
@@ -187,10 +188,23 @@ local function start(doc, pb, playlist_id, opts)
   pb.state = "starting"
   pb.position_ms = 0
   pb.resume_ms = seek_ms
-  pb.paused_by, pb.paused_at = nil, nil
+  pb.paused_by, pb.paused_at, pb.song_replaced = nil, nil, nil
+  if pb.sys and not pb.sys.after then pb.sys = nil end   -- "play" ends a sound still going
   cmds[#cmds + 1] = cmd_audio("play", MUSIC, now.uri)
   cmds[#cmds + 1] = emit("playback.changed", { state = "starting" })
   return { state = st(pb), commands = cmds }
+end
+
+--- A system sound took audio_ctrl's only pipeline (services.playback.sounds): the same song again,
+--- from its place, by the road of any start ("playing" then seeks to resume_ms).
+function playback.load_song_again(pb, cmds)
+  local position = tonumber(pb.position_ms) or 0
+  pb.song_replaced, pb.paused_by, pb.paused_at = nil, nil, nil
+  pb.sys = nil   -- "play" ends a sound still going, and the engine may not report it
+  pb.state = "starting"
+  pb.resume_ms = (pb.now.service ~= "STREAM" and position > 0) and position or nil
+  cmds[#cmds + 1] = cmd_audio("play", MUSIC, pb.now.uri)
+  cmds[#cmds + 1] = emit("playback.changed", { state = "starting" })
 end
 
 --- Continue after a pause, with the rewind rules: short pause -> exactly where it
@@ -198,6 +212,10 @@ end
 --- sleep timer -> the faded minute is played again (60 s back).
 function playback.resume_paused(_, pb, now_s)
   local cmds = {}
+  if pb.song_replaced and pb.now then
+    playback.load_song_again(pb, cmds)
+    return { state = st(pb), commands = cmds }
+  end
   if pb.now and pb.now.audiobook and pb.now.service == "FILE" and pb.paused_at and now_s then
     local long = (now_s - pb.paused_at) > 60
     if long or pb.paused_by == "sleep_timer" then
@@ -241,6 +259,7 @@ function playback.play_uri(doc, uri, info)
   if not streamed and (pb.state == "playing" or pb.state == "paused" or pb.state == "starting") then
     cmds[#cmds + 1] = cmd_audio("stop", MUSIC)
   end
+  pb.song_replaced = nil
   pb.now = { service = "UPNP", uri = uri, title = info.title, artist = info.artist, album = info.album,
              image = info.image, duration_ms = math.floor(tonumber(info.duration_ms) or 0),
              has_next = false, has_prev = false, source = info.album }
@@ -253,6 +272,13 @@ end
 
 function playback.on_pause(doc, ev)
   local pb = pb_of(doc)
+  -- during a sound the engine holds the sound: "pauz" would freeze it, and its end would never come.
+  -- The song is already away: it just does not come back after the sound.
+  if pb.sys and pb.song_replaced then
+    pb.sys.resume_music = nil
+    pb.state, pb.paused_by, pb.paused_at = "paused", ev.source, ev.now
+    return { state = st(pb) }
+  end
   if not is_playing(doc) then return nil end
   if is_offline(pb) then
     local r, e = offline.transport(doc, "pause")
@@ -316,6 +342,23 @@ local function step(doc, pb, delta, ev)
   return start(doc, pb, now.playlist, { queue_pos = pos, restart = true, now_s = ev.now })
 end
 
+--- The knob held to the left ("start", services.device.buttons): the playlist from its first song; an
+--- audiobook or a Spotify playlist set to resume forgets its place.
+function playback.on_restart(doc, ev)
+  local pb = pb_of(doc)
+  local id = pb.now and pb.now.playlist
+  if not id then return nil end
+  local reset = playback.on_resume_reset(doc, id)
+  local after = copy(doc)
+  after.resume = reset.state.resume
+  local r = start(after, pb, id, { queue_pos = 1, restart = true, now_s = ev.now })
+  if not r then return reset end
+  r.state = r.state or {}
+  r.state.resume = reset.state.resume
+  table.insert(r.commands, 1, reset.commands[1])
+  return r
+end
+
 function playback.on_next(doc, ev)
   local pb = pb_of(doc)
   if is_offline(pb) then return offline.transport(doc, "next") end
@@ -343,6 +386,7 @@ function playback.on_seek(doc, ev)
   if is_offline(pb) then return offline.transport(doc, "seek", ms) end
   if is_streaming(pb) then return stream_cmds(pb, "seek", ms) end
   pb.position_ms = ms
+  if pb.song_replaced then return { state = st(pb) } end   -- not in the engine now: its resume goes there
   return { state = st(pb), commands = { cmd_audio("seek", MUSIC, ms) } }
 end
 
@@ -351,6 +395,10 @@ function playback.on_skip(doc, ev)
   if not pb.now or pb.now.service == "STREAM" then return nil end
   if is_offline(pb) then return offline.transport(doc, "skip", math.floor(tonumber(ev.seconds) or 0)) end
   if is_streaming(pb) then return stream_cmds(pb, "skip", math.floor(tonumber(ev.seconds) or 0)) end
+  if pb.song_replaced then
+    pb.position_ms = math.max(0, (tonumber(pb.position_ms) or 0) + math.floor(tonumber(ev.seconds) or 0) * 1000)
+    return { state = st(pb) }
+  end
   return { commands = { cmd_audio("skip_sec", MUSIC, math.floor(tonumber(ev.seconds) or 0)) } }
 end
 
@@ -425,6 +473,12 @@ function playback.on_audio(doc, ev)
     pb.state, pb.position_ms = "idle", 0
     return { state = st(pb), commands = { emit("playback.changed", { state = "idle" }),
       { kind = "log", level = "warn", key = "playback.upnp_failed", fields = { uri = tostring(pb.now.uri):sub(1, 120) } } } }
+  end
+  -- a sound took the only pipeline: the engine says the song stopped, but it is only away, and comes
+  -- back after the sound (services.playback.sounds)
+  if pb.sys and pb.song_replaced and (kind == "stopped" or kind == "paused") then
+    if kind == "paused" and pb.state ~= "paused" then pb.state = "paused"; return { state = st(pb) } end
+    return nil
   end
   local cmds = {}
   local resume, resume_changed = nil, false
@@ -519,11 +573,18 @@ S.skip = { type = "object", required = { "seconds" }, properties = { seconds = {
 S.playlist = resume_rules.schemas.playlist
 playback.schemas = S
 
+-- A new transport request ends a volume audition before music can restart.
+start = volume_test.wrap(start)
+for _, name in ipairs({ "play_uri", "on_pause", "on_resume", "on_toggle", "on_next", "on_prev", "on_seek", "on_skip", "on_stop" }) do
+  playback[name] = volume_test.wrap(playback[name])
+end
+
 function playback.install(api, dispatch)
   dispatch.on("boot", "playback", playback.on_boot)
   dispatch.on("playback.request", "playback", playback.on_request)
   dispatch.on("playback.pause_request", "playback", playback.on_pause)
   dispatch.on("playback.next", "playback", playback.on_next)
+  dispatch.on("playback.restart", "playback", playback.on_restart)
   dispatch.on("playback.prev", "playback", playback.on_prev)
   -- the Jooki's own controls (services.device.buttons): the heart's short press, the knob held halfway
   dispatch.on("playback.toggle_request", "playback", playback.on_toggle)

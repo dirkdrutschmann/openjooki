@@ -1,15 +1,28 @@
 # OpenJooki — Changelog
 
-## Next release
-Thank you to Dirk Drutschmann, who wrote everything below in one weekend.
+## OpenJooki 2.5.1 (9 November 2026) — Back to the start
+- **Back to the start, from the Jooki itself.** A new choice for the track knob, in *Settings → Jooki buttons*: held to the left for three seconds, the playlist starts again from its first song, and an audiobook forgets its place. Short turns stay next and previous. Off by default (#40, thank you aosavi).
+- **A tidier Settings page.** A short list of subjects, the details behind each one, plain icons instead of coloured tiles, two columns on a computer. Nothing is gone: *Volume and headphones*, *Playback*, *Jooki buttons* and *Advanced* hold what the long list had.
+
+## Wi-Fi page (9 November 2026)
+- When the Bluetooth link drops while the [Wi-Fi page](https://guillain-rdcde.github.io/OpenJooki/wifi.html) looks for networks, it links again and starts over, three times. If it still fails, the networks already found, the chosen one and the password stay on the page, so the network can still be given. Tests W16, W17.
+
+## OpenJooki 2.5.0 (9 November 2026) — Lights out, gute Nacht
+Thank you to Dirk Drutschmann, who wrote nearly all of this in one weekend.
 - **Deutsch.** The Jooki's page now speaks German, the names and searches of all 659 pictures included (#30).
 - **All lights off.** *Settings → Turn off all lights permanently*, or *Settings → Night mode → Turn off all lights at night* for the scheduled hours only: the ring, the side lights and the heart go dark, and come back when the time is over (#31). Off by default.
 - **Start with a random song.** In *Settings*, or playlist by playlist: the first song is drawn at random, then the playlist goes on in its order, Spotify playlists included. Audiobooks keep their place. Off by default (#32). Shuffle is also properly random now, even before the Jooki knows the time.
 - **Saved Spotify playlists start faster** after a restart: about a second, without the five-second wait (#32).
+- **Lights off, but it still says hello and goodbye.** With the lights off, the Jooki flashes white three times once it is on the Wi-Fi (or after a minute without Wi-Fi), then goes dark (#36).
+- **Switching off is now silent:** three red flashes and no sound, from the heart or from the page (#36).
+- **Hear a limit before bedtime.** A **Test** button next to the night mode's Maximum volume plays a short sound at that level, even during the day. Music pauses and comes back (#38, #9).
 - **The page can turn the speaker down.** Until now only the knob could. The page can now lower the sound below the knob's level, never raise it above; turning the knob takes over again (#34).
 - **Night mode's Maximum volume and the sleep timer's fade now work on the speaker too**, not only on headphones. If your Jooki suddenly plays quieter during its night hours, that is why: change it in *Settings → Night mode*.
 - **The sleep timer stops at the end of the song.** It now says **End of song** for music and **End of chapter** for audiobooks, and Spotify and Deezer really stop there (#35).
-- For the tinkerers: the global LED driver is `/j/ht/output/raw_write` register 34, checked by read-back (docs/29). Shuffle uses Park-Miller seeded from `/dev/urandom`: the old generator lost bits in Lua's doubles. #34 adds an optional ESP32 `SetVolume` command (`volume_api` 2), a parent ceiling on one global scale, and reproducible ESP32 / MIPS build scripts in `tools/firmware` (docs/30, docs/31). **No firmware is shipped**: without `volume_api` 2 the kids limit stays the factory one and the new slider is hidden. The speaker now goes through a `softvol` on `Softmaster` (`/etc/asound.conf`, docs/30).
+- **Home Assistant no longer cuts the music.** When it connected, its welcome sound took the song's place, and Play or the token then played that sound again. The song now stays, playing or paused. The same fix brings a song back in its place after any other system sound (#28).
+- **The player stopped flickering.** The whole page was redrawn every second while a song played (#29).
+- **A safer update.** If a new version starts but its program does not, the Jooki now goes back to the previous version by itself after five minutes, without opening it. An update is only kept once the page answers.
+- For the tinkerers: the global LED driver is `/j/ht/output/raw_write` register 34, checked by read-back (docs/29). Shuffle uses Park-Miller seeded from `/dev/urandom`: the old generator lost bits in Lua's doubles. #34 adds an optional ESP32 `SetVolume` command (`volume_api` 2), a parent ceiling on one global scale, and reproducible ESP32 / MIPS build scripts in `tools/firmware` (docs/30, docs/31). **No firmware is shipped**: without `volume_api` 2 the kids limit stays the factory one and the new slider is hidden. The speaker now goes through a `softvol` on `Softmaster` (`/etc/asound.conf`, docs/30). `oj-guard.sh` (S95) and the commit hook of `openjooki-selfupdate.sh` wait for the core's page (docs/15). `audio_ctrl` has one pipeline, so a system sound replaces the song: it comes back with `play` and a seek, not `cont`.
 
 ## OpenJooki 2.4.21 (6 November 2026) — Play from other apps
 - **Play from other apps (UPnP / DLNA)** (#29). The Jooki can now play music sent from an app on

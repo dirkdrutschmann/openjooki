@@ -306,7 +306,7 @@ def switch_or_back(host, part, back):
 
 # ---------------- "webui": the OpenJooki core + its web page, via A/B ----------------
 WEBUI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webui")
-WEBUI_FILES = ("index.html", "app.js", "app.css", "mqtt.js",
+WEBUI_FILES = ("volume-test.wav", "index.html", "app.js", "app.css", "mqtt.js",
                "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png",   # home-screen icon (make_icons.py)
                "mp3-worker.js", "lame.min.js", "lame.LICENSE.txt")   # FLAC/WAV -> MP3 in the browser (lamejs, LGPL-3.0)
 # Folders of the page shipped whole (many small files): the token pictures of the library (docs/23 §5).
@@ -340,7 +340,9 @@ CORE_SYSTEM_FILES = {"/jooki/bin/ml-start-app.sh": "ml-start-app.sh",
                      # Wi-Fi start: no factory network added at every start, 30 s for the chip, no sticky factory flag
                      "/etc/rcS.d/S55_ml-start-wifi.sh": "S55_ml-start-wifi.sh",
                      # the broker always starts from its own settings, never from the card's FAT partition
-                     "/etc/rcS.d/S58_mosquitto.sh": "S58_mosquitto.sh"}
+                     "/etc/rcS.d/S58_mosquitto.sh": "S58_mosquitto.sh",
+                     # a core that does not answer after the boot: back to the other partition, by itself
+                     "/etc/rcS.d/S95_oj-guard.sh": "oj-guard.sh"}
 def system_files(core=None): return dict(SYSTEM_FILES, **(CORE_SYSTEM_FILES if core else {}))
 # Only with the core: spotify_ctrl patched to start a playlist at a track and time
 # (spotify_direct.py), built from the Jooki's own copy, and the file that tells the core so.
@@ -350,7 +352,7 @@ SPOTIFY_DIRECT_FLAG = "/jooki/lib/spotify-direct"
 SYSTEM_MODES = {"/etc/init.d/rcS": "755", "/jooki/bin/ml-start-app.sh": "755", "/jooki/bin/ml-jooki-hostname.sh": "755",
                 SPOTIFY_CTRL: "755",
                 "/etc/rcS.d/S57_oj-security.sh": "755", "/etc/rcS.d/S55_ml-start-wifi.sh": "755",
-                "/etc/rcS.d/S58_mosquitto.sh": "755"}
+                "/etc/rcS.d/S58_mosquitto.sh": "755", "/etc/rcS.d/S95_oj-guard.sh": "755"}
 def file_mode(path): return SYSTEM_MODES.get(path, "644")
 
 def ssh_bytes(host, remote_cmd, data=None, timeout=120):

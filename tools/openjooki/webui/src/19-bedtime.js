@@ -50,7 +50,7 @@
     var timers = [0, 10, 15, 20, 30, 45, 60];
     if (timers.indexOf(Number(c.timer)) < 0) { timers.push(Number(c.timer)); timers.sort(function (a, b) { return a - b; }); }
     function volLabel(v) { return v >= 100 ? t('night_nolimit') : v + ' %'; }
-    var out = [sGroup(null, [sRow({ icon: 'moon', color: 'indigo', label: t('night_mode'), sw: true, on: c.enabled, k: 'nighton',
+    var out = [sGroup(null, [sRow({ icon: 'moon', label: t('night_mode'), sw: true, on: c.enabled, k: 'nighton',
       onchange: function (e) { setBedtime({ enabled: e.target.checked }); } })], t('night_help'), 'bedcard')];
     if (!c.enabled) return out;
     out.push(sGroup(t('s_night_hours'), [
@@ -65,11 +65,11 @@
       sRow({ tag: 'label', label: t('night_timer'),
         right: h('select', { class: 'input mini', 'data-k': 'nighttimer', onchange: function (e) { e.target.blur(); setBedtime({ timer: Number(e.target.value) }); } },
           timers.map(function (m) { return h('option', { value: String(m), selected: Number(c.timer) === m ? 'selected' : null }, m ? t('sleep_min', m) : t('night_timer_none')); })) }),
-      h('label', { class: 'srow noico col' }, h('span', { class: 'row', style: 'width:100%' }, h('span', { class: 'l1 grow' }, t('night_maxvol')),
+      h('div', { class: 'srow noico col' }, h('span', { class: 'row', style: 'width:100%' }, h('span', { class: 'l1 grow' }, t('night_maxvol')),
           h('span', { class: 'val', 'data-nightvol': '1' }, volLabel(mv))),
         h('input', { class: 'range', type: 'range', min: '10', max: '100', step: '5', value: String(mv), 'data-k': 'nightvol', 'aria-label': t('night_maxvol'),
           oninput: function (e) { nightVolDrag = Number(e.target.value); var l = document.querySelector('[data-nightvol]'); if (l) l.textContent = volLabel(nightVolDrag); },
-          onchange: function (e) { nightVolDrag = null; setBedtime({ maxvol: Number(e.target.value) }); } })),
+          onchange: function (e) { nightVolDrag = null; setBedtime({ maxvol: Number(e.target.value) }); } }), volumeTestControl('night', false)),
       typeof c.lights_off === 'boolean' ? sRow({ label: t('night_lights_off'), sub: t('night_lights_off_help'), sw: true,
         on: c.lights_off, k: 'nightlightsoff', onchange: function (e) { setBedtime({ lights_off: e.target.checked }); } }) : null,
       sRow({ label: t('night_dim'), sub: t('night_dim_help'), sw: true, on: c.dim, k: 'nightdim',

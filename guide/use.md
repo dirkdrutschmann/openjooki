@@ -38,7 +38,7 @@ The page has four tabs at the bottom: **Playlists**, **Tokens**, **Library**, **
 On a computer, **Add albums** (or drop album folders on the page): each folder becomes a
 playlist, in the album's order. FLAC and WAV files are turned into MP3 by the page before
 they are sent, so an album takes three times less room. Keep the tab in front while it
-works. The quality is in *Settings → MP3 quality* (256 kbps is the recommended one).
+works. The quality is in *Settings → Playback → MP3 quality* (256 kbps is the recommended one).
 On a phone, add the songs with **Add files** instead.
 
 ### Shuffle and repeat, playlist by playlist
@@ -172,7 +172,8 @@ can also wind the song forward or back, and the heart can skip a song on a short
 listen stops by itself after the **Automatic timer**, the volume stays under the
 **Maximum volume** (on the speaker too), and the lights are dim (**Dimmed lights**). **Turn off all lights at night**
 switches off the ring, the side lights and the heart during those hours; they come back on
-afterwards.
+afterwards. **Test**, next to the Maximum volume, plays a short sound at that level, even during
+the day: the music pauses and comes back.
 
 ## Spotify
 
@@ -219,7 +220,7 @@ experimental version.
 
 Apps on your phone, or a music server at home, can send music to the Jooki over your Wi-Fi.
 
-- **Switch it on**: *Settings* → **Play from other apps**. It is off until you do.
+- **Switch it on**: *Settings → Playback* → **Play from other apps**. It is off until you do.
 - **Then, in the app**: pick the Jooki in its list of speakers or players (it has the Jooki's
   name). For example **BubbleUPnP** on Android, **mconnect** on iPhone, or your NAS's music app.
 - **TIDAL, Qobuz**: through an app that can send them to other speakers (BubbleUPnP and mconnect
@@ -234,42 +235,48 @@ Apps on your phone, or a music server at home, can send music to the Jooki over 
 At the top: the Jooki's name (**Rename**), its battery, the room left for music, and its
 version.
 
-<img src="../docs/img/shots/phone-settings.webp" width="260" alt="Settings on a phone: the Jooki's name and Rename, battery, storage, version up to date, then Limited volume, Shuffle, Repeat, MP3 quality, Speaker or headphones">
+<img src="../docs/img/shots/phone-settings.webp" width="260" alt="Settings on a phone: the Jooki's name and Rename, battery, storage, version, then a short list of subjects: Volume and headphones, Playback, Jooki buttons, Night mode">
 
 **Listening**
-- **Limited volume (kids mode)**, **Shuffle**, **Start with a random song**, **Repeat**. These
-  are for the playlists that have no choice of their own
-  ([playlist by playlist](#shuffle-and-repeat-playlist-by-playlist)).
+- *Volume and headphones*: **Limited volume (kids mode)**.
+- **Headphones detected**: **Yes** when wired headphones are plugged in. They need a USB-C to
+  jack adapter with no chip inside ([which one](lights-and-battery.md#charging)).
+- **Louder headphones**: if wired headphones are too quiet. It only works with **Limited
+  volume (kids mode)** off. Turn the volume down before putting them on.
+- *Playback*: **Shuffle**, **Start with a random song**, **Repeat**. These are for the playlists
+  that have no choice of their own ([playlist by playlist](#shuffle-and-repeat-playlist-by-playlist)).
+- **MP3 quality**: for the FLAC and WAV files you send (see *Whole albums* above).
+- **Play from other apps**: lets apps on your Wi-Fi send music to the Jooki
+  ([UPnP / DLNA](#from-other-apps-upnp--dlna)). Off until you switch it on.
+- *Jooki buttons*:
 - **Short press on the heart**: **Nothing** (as before), **Next song**, or **Pause / play**.
   Held two seconds, the heart still switches the Jooki off; five seconds when its short press
   does something, so a small child pressing a bit too long does not switch it off.
 - **The track knob**: **Next / previous song** (as before), **Both (halfway winds)**: held
   halfway, it winds the song, turned all the way it changes the song, or **Wind the song**:
-  the knob only winds, and the heart can change the song.
-- **MP3 quality**: for the FLAC and WAV files you send (see *Whole albums* above).
-- **Headphones detected**: **Yes** when wired headphones are plugged in. They need a USB-C to
-  jack adapter with no chip inside ([which one](lights-and-battery.md#charging)).
-- **Louder headphones**: if wired headphones are too quiet. It only works with **Limited
-  volume (kids mode)** off. Turn the volume down before putting them on.
-- **Play from other apps**: lets apps on your Wi-Fi send music to the Jooki
-  ([UPnP / DLNA](#from-other-apps-upnp--dlna)). Off until you switch it on.
-- **Speaker or headphones** (Bluetooth): put them in pairing mode, then **Search** →
-  **Connect**. The sound goes to the speaker, and comes back to the Jooki when you switch
-  the speaker off. Next time, just switch the speaker on: the Jooki reconnects by itself.
-  **Stop using this speaker** ends that.
+  the knob only winds, and the heart can change the song. Or **Songs, held left: back to the
+  start**: as before, and held to the left for three seconds, the playlist starts again from its
+  first song; an audiobook forgets its place. A child can do it without the page.
 
 **Bedtime and travel**
 - **Night mode**: see *Bedtime* above.
 - **Turn off all lights permanently**: the ring, the side lights and the heart stay off day and
-  night, even after a restart. A brief light can still show while the Jooki starts.
+  night, even after a restart. At the start it stays lit until the Wi-Fi is back (a minute at
+  most), flashes white three times, then goes dark.
 - **Airplane mode**: Wi-Fi and Bluetooth off for the time you choose (1, 2, 4 or 8 hours,
   until the morning, or until it is switched off and on again). The Jooki brings them back
   by itself; tokens and music work the whole time. Meanwhile, this page cannot reach it:
   that's expected.
 
-**General**
+**Connections**
+- **Speaker or headphones** (Bluetooth): put them in pairing mode, then **Search** →
+  **Connect**. The sound goes to the speaker, and comes back to the Jooki when you switch
+  the speaker off. Next time, just switch the speaker on: the Jooki reconnects by itself.
+  **Stop using this speaker** ends that.
 - **Wi-Fi**: the network, the signal and the page's address. Moved house or changed the
   box? See [Give it its Wi-Fi back](https://guillain-rdcde.github.io/OpenJooki/wifi.html).
+
+**General**
 - **Update**: see [Update it](update.md).
 - **Language**: English, Français, Nederlands or Deutsch. The page picks your phone's language by
   itself.

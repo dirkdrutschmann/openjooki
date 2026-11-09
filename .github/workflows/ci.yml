@@ -128,12 +128,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/bench
+      - name: Settings volume test tones
+        run: sudo -E python3 test_volume_test.py
       - name: Web volume and configurable kids ceiling
         run: sudo -E python3 test_device_controls.py
       - name: Scheduled and permanent device darkness
         run: sudo -E python3 test_lights_off.py
       - name: Spotify offline UI and outgoing commands
         run: sudo -E python3 test_spotify_offline_ui.py
+      - name: Connected startup light cue and immediate heart presses
+        run: sudo -E python3 test_lights_cues.py
+      - name: Silent three-flash manual shutdown
+        run: sudo -E python3 test_shutdown_lights.py
       - name: German device UI
         run: sudo -E python3 test_german.py
       - name: backend
@@ -153,6 +159,18 @@ jobs:
       - name: UPnP player (a fake phone app, #29)
         if: ${{ !cancelled() }}
         run: sudo -E python3 test_upnp.py
+      - name: A system whose core does not answer goes back by itself
+        if: ${{ !cancelled() }}
+        run: sudo -E python3 test_guard.py
+      - name: The track knob's back to the start (#40)
+        if: ${{ !cancelled() }}
+        run: sudo -E python3 test_knob_start.py
+      - name: Home Assistant connecting while music plays (#28)
+        if: ${{ !cancelled() }}
+        run: sudo -E python3 test_ha_connect.py
+      - name: The page keeps still while a song plays (#29)
+        if: ${{ !cancelled() }}
+        run: sudo -E python3 test_page_steady.py
       - name: e2e (the page)
         if: ${{ !cancelled() }}
         run: sudo -E python3 e2e.py
