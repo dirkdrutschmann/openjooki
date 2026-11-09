@@ -8,12 +8,12 @@ address asked, in order). The device's own paths are used (/data/openjooki, /dat
 
   - scripts/make-release.sh writes the updater hashes into version.json, check_versions.py
     --manifest accepts them and refuses a copy that differs;
-  - the right sha256: the update goes on (release copy first; the Pages copy when the release
+  - the right sha256: the update goes on (release copy first; the raw docs copy when the release
     has none; the real openjooki-ota.sh then downloads, checks and hands the image over);
   - a wrong sha256: refused (exit 3, "updater rejected, nothing changed"), the old scripts kept,
     nothing run;
   - a release made before the hashes (2.4.1's version.json, as published): today's behaviour,
-    the Pages copies, unchecked, and the log says "updater not verified";
+    the raw docs copies, unchecked, and the log says "updater not verified";
   - no network: nothing changed;
   - the firmware image over a weak Wi-Fi (openjooki-ota.sh's dlr, the real curl against a server
     that cuts every answer): each try goes on from where the last stopped, a server that cannot
@@ -25,8 +25,8 @@ import gzip, hashlib, http.server, json, os, shutil, subprocess, sys, tempfile, 
 import bench as B
 
 DOCS = os.path.join(B.REPO, "docs")
-BASE = "github.com/Guillain-RDCDE/OpenJooki/releases/latest/download"
-PAGES = "guillain-rdcde.github.io/OpenJooki"
+BASE = "github.com/dirkdrutschmann/openjooki/releases/latest/download"
+PAGES = "raw.githubusercontent.com/dirkdrutschmann/openjooki/main/docs"
 WORK, STATUS = "/data/openjooki", "/jooki/app/www/public/openjooki-status.txt"
 DEVTYPE, VERFILE = "/data/mender/device_type", "/etc/openjooki-version"
 KEEP = [WORK, os.path.dirname(DEVTYPE), VERFILE, STATUS]      # put back as they were at the end
@@ -304,7 +304,7 @@ def main():
         rc, st, out = w.run("o.sh")
         R.check("o.sh, hashes in the release: verified from the release's copies, the real updater runs",
                 rc == 0 and "updater verified" in st and "already up to date" in st and "not verified" not in st, (rc, st, out))
-        R.check("o.sh, hashes in the release: version.json first, then the release's copies, never Pages",
+        R.check("o.sh, hashes in the release: version.json first, then the release's copies, never raw docs",
                 w.urls()[:3] == ["BASE/version.json", "BASE/openjooki-ota.sh", "BASE/openjooki-selfupdate.sh"]
                 and not any(u.startswith("PAGES/") for u in w.urls()), w.urls())
         R.check("o.sh, hashes in the release: the verified scripts are in place, executable, no leftover",
@@ -322,14 +322,14 @@ def main():
                     "updater verified" in st and "image intact" in st and "stub installer ran with" in st
                     and work("self-ran", "r").strip().endswith("openjooki-firmware-9.9.10.img.gz"), (rc, st, out))
 
-        # --- 4. no copy in the release (or a bad one there): the Pages copy, if it has the sha256
+        # --- 4. no copy in the release (or a bad one there): the raw docs copy, if it has the sha256
         for label, serve in (("the release has no copy", {}),
                              ("the release's copy is not the right one", {"BASE/openjooki-ota.sh": STUB_OTA + b"# not this\n"})):
             w.reset(dict(serve, **{"BASE/version.json": manifest("9.9.10", image, sha(STUB_OTA), sha(STUB_SELF)),
                                    "PAGES/openjooki-ota.sh": STUB_OTA, "PAGES/openjooki-selfupdate.sh": STUB_SELF}),
                     old_scripts=True)
             rc, st, out = w.run("o.sh")
-            R.check("o.sh, %s: the Pages copy is checked and used" % label,
+            R.check("o.sh, %s: the raw docs copy is checked and used" % label,
                     rc == 0 and "updater verified" in st and work("ota-ran") == b"ran\n" and work("ota.sh") == STUB_OTA
                     and w.urls()[:3] == ["BASE/version.json", "BASE/openjooki-ota.sh", "PAGES/openjooki-ota.sh"], (rc, st, w.urls()))
 
@@ -354,7 +354,7 @@ def main():
                      "PAGES/openjooki-selfupdate.sh": real_self}, installed="2.4.1", old_scripts=True)
             rc, st, out = w.run(script)
             # the real openjooki-ota.sh finds 2.4.1 installed: exit 0, which both report as they always did
-            R.check("%s, a release without hashes: 'updater not verified', then today's behaviour (Pages copies, the real updater)" % script,
+            R.check("%s, a release without hashes: 'updater not verified', then today's behaviour (raw docs copies, the real updater)" % script,
                     rc == 0 and "updater not verified" in st and "updater verified" not in st and "already up to date" in st
                     and work("ota.sh") == real_ota and work("selfupdate.sh") == real_self, (rc, st, out))
             R.check("%s, a release without hashes: the release is never asked for the scripts" % script,

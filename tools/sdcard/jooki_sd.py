@@ -33,7 +33,7 @@ MAX_CARD = 512 * 10**9
 BENCH = os.environ.get("JOOKI_SD_BENCH") == "1"     # tests: any block device given by path
 # the complete card image lives in its own GitHub release, "sdcard", independent of the firmware
 # releases (the Jooki updates itself once it starts); sdcard.json says its name, sizes and SHA-256
-RELEASES = "https://github.com/Guillain-RDCDE/OpenJooki/releases"
+RELEASES = "https://github.com/dirkdrutschmann/openjooki/releases"
 MANIFESTS = [RELEASES + "/download/sdcard/sdcard.json"]
 # the original Jooki card (docs/27): the Muuselabs system of December 2022, rebuilt byte for byte, no OpenJooki
 ORIGINAL_MANIFESTS = [RELEASES + "/download/original/original.json"]

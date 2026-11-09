@@ -32,6 +32,10 @@
     var ready = !!snap.ready, offset = Number(meta.offset) || wanted;
     var tracks = arr(meta.tracks).length ? arr(meta.tracks) : wanted === 0 && arr(snap.tracks).length ? arr(snap.tracks) : mine && wanted === 0 ? arr(active.tracks) : [];
     var total = Number(meta.total) || Number(snap.total_tracks) || Number(own.total) || tracks.length;
+    var failedUnavailable = /^(track_unavailable|unsupported_audio_format)$/.test(own.error || '');
+    var firstPageTracks = arr(obj(offlinePreviewCache[pageKey + ':0']).tracks);
+    var failedIndex = Number(own.completed) || 0;
+    var failedTitle = failedUnavailable && failedIndex < firstPageTracks.length ? firstPageTracks[failedIndex].name : '';
     var queue = arr(o.queue), queuedAt = -1;
     queue.forEach(function (item, index) { if (item.uri === p.spotify.uri) queuedAt = index; });
     var np = obj(S.audio.nowPlaying), offlineActive = np.service === 'SPOTIFY_OFFLINE' && !/^(STOPPED|ENDED)$/.test(S.audio.playback.state || '');
@@ -97,7 +101,7 @@
         h('progress', { max: Math.max(1, Number(active.total) || 1), value: Number(active.completed) || 0, 'aria-label': t('of_busy') }),
         h('span', { class: 'small muted' }, t('of_processed') + ': ' + offlineBytes(active.bytes))) : null,
       /^(error|interrupted)$/.test(own.phase || '') ? h('p', { class: 'offline-notice error', role: 'alert' },
-        own.total ? own.phase === 'error' && /^(track_unavailable|unsupported_audio_format)$/.test(own.error || '') ? t('of_failed_at', (own.completed || 0) + 1, own.total) + ' ' : (own.completed || 0) + ' / ' + own.total + ' · ' : '', offlineErrorText(own.error)) : null,
+        own.total ? failedUnavailable ? t('of_failed_at', failedIndex + 1, own.total) + (failedTitle ? ' ' + t('of_failed_title', failedTitle) : '') + ' ' : (own.completed || 0) + ' / ' + own.total + ' · ' : '', offlineErrorText(own.error)) : null,
       obj(o.player).playlist === id && obj(o.player).error ? h('p', { class: 'offline-notice error', role: 'alert' }, offlineErrorText(o.player.error, 'playback')) : null,
       ready ? h('p', { class: 'small', 'data-k': 'offline-ready' }, t('of_ready') + ' · ' + (snap.total_tracks || arr(snap.tracks).length) + ' · ' + offlineBytes(snap.bytes)) : null,
       h('div', { class: 'offline-storage small muted' }, h('span', null, t('of_storage') + ': ' + offlineBytes(storage.used_bytes)),

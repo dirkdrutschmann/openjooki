@@ -376,9 +376,11 @@ As built ([ADR-0007](adr/0007-security-model.md), complete since 2.1.0):
 - `adapters.shell` is a list of named actions with checked arguments, never a
   free string.
 - **Updates**: the two addresses are configuration keys (`update_manifest_url`,
-  `update_script_url`) and the shell actions accept only our GitHub
-  (`github.com/Guillain-RDCDE/OpenJooki/`, `guillain-rdcde.github.io/OpenJooki/`)
-  or `http://127.0.0.1:<port>/` for the bench (`shell.is_update_url`).
+  `update_script_url`) and the shell actions accept the fork's release and raw
+  script paths (`github.com/dirkdrutschmann/openjooki/`,
+  `raw.githubusercontent.com/dirkdrutschmann/openjooki/main/docs/`), the original
+  project's published hosts for compatibility, or `http://127.0.0.1:<port>/` for
+  the bench (`shell.is_update_url`).
 - No outbound connection except NTP and, on request, GitHub (update check).
 
 ## 13. Engineering practices

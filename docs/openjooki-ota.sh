@@ -7,9 +7,9 @@
 #   (no arg): checks, downloads and installs if there's anything new (reboots at the end).
 #   --check  : only reports whether a new version exists, installs nothing.
 
-REPO="Guillain-RDCDE/OpenJooki"
+REPO="dirkdrutschmann/openjooki"
 BASE="https://github.com/$REPO/releases/latest/download"
-PAGES="https://guillain-rdcde.github.io/OpenJooki"
+PAGES="https://raw.githubusercontent.com/$REPO/main/docs"
 WORK="/data/openjooki"
 SELF="/data/openjooki/selfupdate.sh"
 mkdir -p "$WORK"

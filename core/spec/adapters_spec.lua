@@ -161,11 +161,14 @@ describe("adapters.shell", function()
     assert_eq(#calls, 2)
   end)
 
-  it("the updater fetches only from our GitHub or the bench's own server, at the configured address", function()
-    local ok = { "https://github.com/Guillain-RDCDE/OpenJooki/releases/latest/download/version.json",
+  it("the updater fetches only from the fork, the original project, or the bench's own server", function()
+    local ok = { "https://github.com/dirkdrutschmann/openjooki/releases/latest/download/version.json",
+                 "https://raw.githubusercontent.com/dirkdrutschmann/openjooki/main/docs/o.sh",
+                 "https://github.com/Guillain-RDCDE/OpenJooki/releases/latest/download/version.json",
                  "https://guillain-rdcde.github.io/OpenJooki/o.sh", "http://127.0.0.1:8090/oj-test/o.sh" }
     for _, u in ipairs(ok) do assert_true(shell.is_update_url(u), u) end
     for _, bad in ipairs({ "https://example.com/o.sh", "http://127.0.0.1/o.sh", "https://github.com/someone/else/o.sh",
+                           "https://raw.githubusercontent.com/someone/else/main/docs/o.sh",
                            "https://guillain-rdcde.github.io/OpenJooki/o.sh;reboot", "ftp://127.0.0.1:1/x", "", 7, nil }) do
       assert_false(shell.is_update_url(bad), tostring(bad))
     end

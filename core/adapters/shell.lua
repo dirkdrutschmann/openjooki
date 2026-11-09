@@ -11,10 +11,14 @@ local is_pubkey = require("services.security").is_pubkey
 shell.is_pubkey = is_pubkey
 -- a network name: lower-case letters, digits, inner hyphens, 1-32 characters ("" = back to the factory name)
 local function is_hostname(s) return type(s) == "string" and #s <= 32 and (s:match("^[a-z0-9]$") or s:match("^[a-z0-9][a-z0-9%-]*[a-z0-9]$")) ~= nil end
--- an address the updater may fetch from: our GitHub (releases, Pages) or the bench's own server
+-- an address the updater may fetch from: the fork (releases, raw scripts), the original
+-- project's published host for existing installations, or the bench's own server
 local function is_update_url(s)
   if type(s) ~= "string" or #s > 200 or not s:match("^[%w%-%._~:/%?=&%%]+$") then return false end
-  return (s:match("^https://github%.com/Guillain%-RDCDE/OpenJooki/") or s:match("^https://guillain%-rdcde%.github%.io/OpenJooki/")
+  return (s:match("^https://github%.com/dirkdrutschmann/openjooki/")
+          or s:match("^https://raw%.githubusercontent%.com/dirkdrutschmann/openjooki/main/docs/")
+          or s:match("^https://github%.com/Guillain%-RDCDE/OpenJooki/")
+          or s:match("^https://guillain%-rdcde%.github%.io/OpenJooki/")
           or s:match("^http://127%.0%.0%.1:%d+/")) ~= nil
 end
 shell.is_update_url = is_update_url
