@@ -7,10 +7,16 @@ checked everywhere by CI (`scripts/check_versions.py`).
 | Step | Where | Command |
 |---|---|---|
 | 1. Write the entry | anywhere | `CHANGELOG.md`: fill the `## Next release` section (one bullet per change a family can see) |
-| 2. Set the version | anywhere | `scripts/bump-version.sh 2.2.6 "Title" "one-line summary"` then `git commit -am "Release 2.2.6: Title"` and `git push` |
+| 2. Set the version | anywhere | `scripts/bump-version.sh 2.2.6 "Title" "one-line summary"` then `git commit -am "Release 2.2.6: Title"` and push `main` to the fork |
 | 3. Build | the Linux bench, as root | `scripts/release.sh 2.2.6` → `release-2.2.6/` (image + `version.json` + `openjooki-ota.sh` and `openjooki-selfupdate.sh`) and `release-sdcard-2.2.6/` (new-card image + `sdcard.json`), both verified |
 | 4. Publish | a machine with `gh` | `scripts/publish-release.sh 2.2.6` → tag, GitHub Release marked *Latest* (notes from the CHANGELOG entry), the rolling `sdcard` release updated, the published image and updater scripts downloaded again and checked |
 | 5. Check the card | the bench | `scripts/check-card.sh 2.2.6` → the SD tool fetches the new-card image from the real release and writes an 8 GB "card" that is then checked |
+
+The publisher targets `dirkdrutschmann/openjooki` by default and selects a matching local
+`fork` or `origin` remote. Set `OJ_RELEASE_REMOTE` only if that remote has another name;
+the script refuses to publish if it points elsewhere. A release becomes available to the
+Jooki only after a full firmware image is built and published; a source commit or the
+experimental player package alone is not an OTA update.
 
 What `release.sh` needs on the bench, by environment variable (defaults in the script): the
 1.3.0 base image (`OJ_BASE_IMAGE`), the pieces of a new card (`OJ_NEWCARD`: `boot.bin`, `p1.img`;

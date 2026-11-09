@@ -7,9 +7,9 @@
 #
 # Progress is written to the web root so a phone browser can watch it live at
 #   http://<jooki-ip>/openjooki-status.txt
-REPO="Guillain-RDCDE/OpenJooki"
+REPO="dirkdrutschmann/openjooki"
 BASE="https://github.com/$REPO/releases/latest/download"
-PAGES="https://guillain-rdcde.github.io/OpenJooki"
+PAGES="https://raw.githubusercontent.com/$REPO/main/docs"
 WORK="/data/openjooki"
 WEB="/jooki/app/www/public"
 STATUS="$WEB/openjooki-status.txt"
@@ -37,9 +37,9 @@ st "device OK: Jooki v2 ($DT)"
 
 # --- Fetch the OpenJooki updater scripts, checked before anything runs ---
 # The release's version.json gives their sha256 (ota_sha256, selfupdate_sha256, written by
-# scripts/make-release.sh). Each script is taken from the release, or from Pages when the
+# scripts/make-release.sh). Each script is taken from the release, or from the fork's raw docs when the
 # release has no copy with that sha256, and replaces the old one only once both are right.
-# A release made before these fields existed gets the Pages copies as it always did,
+# A release made before these fields existed gets the raw docs copies as it always did,
 # unchecked, and the log says so. (o.sh does the same, in the same words.)
 st "downloading the OpenJooki updater…"
 dl "$BASE/version.json" "$WORK/version.json" || { st "ERROR: no internet / cannot reach GitHub — aborting (nothing changed)"; exit 1; }

@@ -4,9 +4,9 @@
 # sha256 its version.json gives, see below), then checks that release for a newer firmware
 # and installs it safely (A/B partition + armed U-Boot rollback). It CANNOT brick the
 # device, and if you are already on the latest version it simply does nothing.
-REPO="Guillain-RDCDE/OpenJooki"
+REPO="dirkdrutschmann/openjooki"
 BASE="https://github.com/$REPO/releases/latest/download"
-PAGES="https://guillain-rdcde.github.io/OpenJooki"
+PAGES="https://raw.githubusercontent.com/$REPO/main/docs"
 WORK="/data/openjooki"
 WEB="/jooki/app/www/public"
 STATUS="$WEB/openjooki-status.txt"
@@ -18,9 +18,9 @@ dl(){ _u="$1"; _o="$2"; _i=0; while :; do curl -fsSL --max-time 300 "$_u" -o "$_
 st "checking for updates…"
 # The updater scripts, checked before anything runs. The release's version.json gives their
 # sha256 (ota_sha256, selfupdate_sha256, written by scripts/make-release.sh). Each script is
-# taken from the release, or from Pages when the release has no copy with that sha256, and
+# taken from the release, or from the fork's raw docs when the release has no copy with that sha256, and
 # replaces the old one only once both are right. A release made before these fields existed
-# gets the Pages copies as it always did, unchecked, and the log says so.
+# gets the raw docs copies as it always did, unchecked, and the log says so.
 dl "$BASE/version.json" "$WORK/version.json" || { st "ERROR: cannot reach GitHub — nothing changed"; exit 1; }
 OTA_SHA=$(sed -n 's/.*"ota_sha256"[^"]*"\([^"]*\)".*/\1/p' "$WORK/version.json" | head -n 1)
 SELF_SHA=$(sed -n 's/.*"selfupdate_sha256"[^"]*"\([^"]*\)".*/\1/p' "$WORK/version.json" | head -n 1)

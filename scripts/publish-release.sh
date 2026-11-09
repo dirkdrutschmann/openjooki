@@ -8,7 +8,29 @@
 set -e
 cd "$(dirname "$0")/.."
 V="$1"; [ -n "$V" ] || { echo "usage: $0 <version>"; exit 1; }
-REPO="Guillain-RDCDE/OpenJooki"
+REPO="dirkdrutschmann/openjooki"
+REMOTE="${OJ_RELEASE_REMOTE:-}"
+if [ -z "$REMOTE" ]; then
+  for candidate in fork origin; do
+    url=$(git remote get-url "$candidate" 2>/dev/null || true)
+    case "$url" in
+      *github.com:*) remote_repo=${url##*github.com:} ;;
+      *github.com/*) remote_repo=${url##*github.com/} ;;
+      *) remote_repo="" ;;
+    esac
+    remote_repo=${remote_repo%.git}
+    if [ "$remote_repo" = "$REPO" ]; then REMOTE="$candidate"; break; fi
+  done
+fi
+[ -n "$REMOTE" ] || { echo "no Git remote points to $REPO (set OJ_RELEASE_REMOTE if needed)"; exit 1; }
+url=$(git remote get-url "$REMOTE" 2>/dev/null || true)
+case "$url" in
+  *github.com:*) remote_repo=${url##*github.com:} ;;
+  *github.com/*) remote_repo=${url##*github.com/} ;;
+  *) remote_repo="" ;;
+esac
+remote_repo=${remote_repo%.git}
+[ "$remote_repo" = "$REPO" ] || { echo "$REMOTE points to '$remote_repo', expected $REPO"; exit 1; }
 IMG="release-$V/openjooki-firmware-$V.img.gz"; MAN="release-$V/version.json"
 # the updater scripts o.sh and b.sh fetch from the release first (version.json gives their sha256)
 UPDATERS="openjooki-ota.sh openjooki-selfupdate.sh"
@@ -19,8 +41,8 @@ command -v gh >/dev/null || { echo "gh is needed"; exit 1; }
 python3 scripts/check_versions.py --release "$V" --manifest "$MAN"
 [ -z "$(git status --porcelain)" ] || { echo "the tree is not clean: commit first"; exit 1; }
 [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || { echo "not on main"; exit 1; }
-git fetch -q origin main
-[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "HEAD is not pushed (or behind origin/main)"; exit 1; }
+git fetch -q "$REMOTE" main
+[ "$(git rev-parse HEAD)" = "$(git rev-parse "$REMOTE/main")" ] || { echo "HEAD is not pushed (or behind $REMOTE/main)"; exit 1; }
 grep -q "\"version\": \"$V\"" "$MAN" || { echo "$MAN is not $V"; exit 1; }
 
 # release notes: the CHANGELOG entry, its heading as a bold first line, then the standing footer
@@ -33,7 +55,7 @@ printf '\nUpdate straight from your Jooki'"'"'s page. [All the changes](https://
 
 echo "=== tag v$V"
 if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then echo "tag exists"; else git tag -a "v$V" -m "OpenJooki $V"; fi
-git push -q origin "v$V"
+git push -q "$REMOTE" "v$V"
 
 echo "=== GitHub release v$V"
 if gh release view "v$V" -R "$REPO" >/dev/null 2>&1; then

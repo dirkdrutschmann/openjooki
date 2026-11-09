@@ -39,7 +39,7 @@ exit /b
 # ----------------------------------------------------------------------------------------------
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$Releases = 'https://github.com/Guillain-RDCDE/OpenJooki/releases'
+$Releases = 'https://github.com/dirkdrutschmann/openjooki/releases'
 # the complete card image lives in its own release, "sdcard", independent of the firmware releases
 # (the Jooki updates itself once it starts); sdcard.json describes it
 $Manifests = @("$Releases/download/sdcard/sdcard.json")

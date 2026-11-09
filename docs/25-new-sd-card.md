@@ -83,7 +83,7 @@ forbidden strings.
 
 The two files are attached to a GitHub release of their own, **`sdcard`**, on purpose
 not the "latest" one (the Jooki's updater reads `latest`). The tools read
-`https://github.com/Guillain-RDCDE/OpenJooki/releases/download/sdcard/sdcard.json`
+`https://github.com/dirkdrutschmann/openjooki/releases/download/sdcard/sdcard.json`
 and nothing else, so someone whose Jooki died a year from now lands on the page, runs
 the tool and gets a card that starts, whatever firmware releases happened meanwhile.
 

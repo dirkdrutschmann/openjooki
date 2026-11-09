@@ -27,12 +27,17 @@ What changed in each version: [CHANGELOG](../CHANGELOG.md).
 
 ## Offline test branch
 
-The `feature/spotify-offline-audit` branch in the fork produces experimental
-`2.4.21-offline.N` application packages, separately from normal upstream updates.
-They include the web page, Lua core and an SD-resident player; credentials and
-music are excluded. Use the matching installer and retain its private rollback
-state. A normal upstream update can replace these experimental additions.
-See [the test setup and login guide](spotify-offline.de.md) and
-[the package/rollback commands](../tools/spotify-offline/README.md).
+The fork's `main` contains the experimental Spotify changes. A Jooki built from
+this source checks `dirkdrutschmann/openjooki` for firmware releases, separately
+from the original project's releases. A source commit does not update the device:
+the normal updater needs a complete firmware image and `version.json` published as
+a GitHub Release by `scripts/publish-release.sh`.
+
+The `2.4.21-offline.N` test packages remain separate from full firmware releases.
+They include the web page, Lua core and an SD-resident player; credentials and music
+are excluded. Use the matching installer and retain its private rollback state.
+See [the test setup and login guide](spotify-offline.de.md),
+[the package/rollback commands](../tools/spotify-offline/README.md) and
+[the fork release steps](../docs/28-release.md).
 
 [← Back](../README.md)

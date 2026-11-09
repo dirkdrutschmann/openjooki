@@ -134,14 +134,15 @@ the background, so the player never waits on the network):
 
 | Message | What the Jooki does | What the page reads |
 |---|---|---|
-| `/j/web/input/OJ_UPDATE_CHECK` | writes `{"pending":true}`, then downloads the manifest at `update_manifest_url` (by default `version.json` of the latest GitHub release; `{"error":"offline"}` if it can't) | `/oj-latest.json` |
-| `/j/web/input/OJ_UPDATE_START` | downloads the script at `update_script_url` (by default `o.sh` on GitHub Pages, the same as the phone installer's) and runs it, once at a time | `/oj-status.txt` (the installer's log) |
+| `/j/web/input/OJ_UPDATE_CHECK` | writes `{"pending":true}`, then downloads the manifest at `update_manifest_url` (by default the fork's latest GitHub release; `{"error":"offline"}` if it can't) | `/oj-latest.json` |
+| `/j/web/input/OJ_UPDATE_START` | downloads the script at `update_script_url` (by default `o.sh` from the fork's raw `main/docs` path) and runs it, once at a time | `/oj-status.txt` (the installer's log) |
 
 The two addresses are keys of the core's configuration (`core/kernel/config.lua`), and
 the shell actions that fetch them (`core/adapters/shell.lua`, `is_update_url`) accept
-only our GitHub (`https://github.com/Guillain-RDCDE/OpenJooki/…`,
-`https://guillain-rdcde.github.io/OpenJooki/…`) or `http://127.0.0.1:<port>/…`, which
-is how the bench serves its own. The same two actions answer the v2 commands
+only the fork (`https://github.com/dirkdrutschmann/openjooki/…`,
+`https://raw.githubusercontent.com/dirkdrutschmann/openjooki/main/docs/…`), the original project's
+published hosts for compatibility, or `http://127.0.0.1:<port>/…`, which is how the bench serves its own.
+The same two actions answer the v2 commands
 `update.check` and `update.start`.
 
 The installed version comes from `/etc/openjooki-version` and is sent in the
