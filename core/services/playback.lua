@@ -466,13 +466,15 @@ function playback.on_audio(doc, ev)
   local pb = pb_of(doc)
   -- Spotify/Deezer plays: late reports of the local track it stopped must not touch its state
   if is_streaming(pb) then return nil end
-  -- the engine could not play it (audio_ctrl's cb_error): only a song from an app is concerned, so
-  -- the app sees it stopped and moves on (a file or a radio keep their 1.x behaviour)
+  -- The engine could not play a network URI. A playlist radio used to keep a stale PLAYING state,
+  -- even though audio_ctrl had rejected its URL (for example HTTPS without the GIO TLS module).
   if kind == "error" then
-    if not (pb.now and pb.now.service == "UPNP") or pb.state == "idle" then return nil end
+    if not (pb.now and (pb.now.service == "UPNP" or pb.now.service == "STREAM")) or pb.state == "idle" then return nil end
     pb.state, pb.position_ms = "idle", 0
+    local failed = pb.now.service == "STREAM"
     return { state = st(pb), commands = { emit("playback.changed", { state = "idle" }),
-      { kind = "log", level = "warn", key = "playback.upnp_failed", fields = { uri = tostring(pb.now.uri):sub(1, 120) } } } }
+      { kind = "log", level = "warn", key = failed and "playback.stream_failed" or "playback.upnp_failed",
+        fields = failed and { playlist = tostring(pb.now.playlist) } or { uri = tostring(pb.now.uri):sub(1, 120) } } } }
   end
   -- a sound took the only pipeline: the engine says the song stopped, but it is only away, and comes
   -- back after the sound (services.playback.sounds)

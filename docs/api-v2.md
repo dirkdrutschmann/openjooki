@@ -473,7 +473,7 @@ No payload.
 
 ### `playlist.add_stream`
 
-Adds a web radio (http/https URL).
+Adds a web radio (`http://` URL). HTTPS streams are unsupported by the Jooki's audio player.
 
 Payload schema:
 
