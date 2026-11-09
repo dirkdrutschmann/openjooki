@@ -8,7 +8,7 @@ function adapter.install(shell, config)
   if not (path(root) and path(scratch) and path(binary) and type(quota) == "number" and (quota == 0 or quota >= 1048576) and quota == math.floor(quota)) then error("invalid offline configuration") end
   local function args(command, a)
     a = a or {}
-    if command == "cache-track" or command == "sync" or command == "remove" or command == "play" or command == "preview" then if not uri(a.uri) then return nil, "invalid Spotify playlist URI" end end
+    if command == "remove-track" or command == "cache-track" or command == "sync" or command == "remove" or command == "play" or command == "preview" then if not uri(a.uri) then return nil, "invalid Spotify playlist URI" end end
     local memory = (command == "sync" or command == "cache-track") and 16384 or (command == "play" and 12288 or 8192)
     -- LuaSocket descriptors survive exec on the device. A long-lived player must
     -- not retain the core's HTTP listener and prevent the next core from binding.
@@ -41,7 +41,7 @@ function adapter.install(shell, config)
       for _, x in ipairs({ "--session", a.session, "--control", prefix .. ".commands.json", "--status", prefix .. ".status.json", "--index", tostring(a.index) }) do out[#out + 1] = x end
       if a.resume then out[#out + 1] = "--resume" end
     end
-    if command == "cache-track" or (command == "play" and a.track_uri) then
+    if command == "remove-track" or command == "cache-track" or (command == "play" and a.track_uri) then
       if type(a.track_uri) ~= "string" or #a.track_uri ~= 36 or not a.track_uri:match("^spotify:track:%w+$") then return nil, "invalid track URI" end
       out[#out + 1] = "--track-uri"; out[#out + 1] = a.track_uri
       if command == "cache-track" then
@@ -57,9 +57,9 @@ function adapter.install(shell, config)
   shell.ACTIONS.offline_auth_activate = { argv = function(a)
     return args("activate-login", a)
   end, background = true }
-  for _, name in ipairs({ "catalog", "sync", "remove", "play", "forget", "preview", "cache_track" }) do
+  for _, name in ipairs({ "catalog", "sync", "remove", "play", "forget", "preview", "cache_track", "remove_track" }) do
     local command = name
-    shell.ACTIONS["offline_" .. command] = { argv = function(a) return args(command == "cache_track" and "cache-track" or command, a) end, background = true }
+    shell.ACTIONS["offline_" .. command] = { argv = function(a) return args((command == "cache_track" or command == "remove_track") and command:gsub("_", "-") or command, a) end, background = true }
   end
 end
 return adapter

@@ -117,10 +117,32 @@ describe("Spotify offline snapshots and routing", function()
       if reverse then apply(d, offline.on_catalog(d, catalog)); apply(d, offline.on_queue(d, queue))
       else apply(d, offline.on_queue(d, queue)); apply(d, offline.on_catalog(d, catalog)) end
       assert_eq(d.spotify_offline.queue[1].uri, URI)
+      apply(d, offline.on_job(d, { text = nil }))
       local r = offline.on_timer(d, { now = 90 }); assert_eq(shell(r, "offline_sync").args.uri, URI)
       apply(d, offline.on_catalog(d, { text = json.encode({ version = 1, account_id = "other", account_ready = true, playlists = {} }) }))
       assert_eq(#d.spotify_offline.queue, 0)
     end
+  end)
+  it("adopts a surviving worker before resuming a restored queue", function()
+    local d = fixture(); apply(d, offline.on_boot(d)); d.spotify_offline.catalog_loaded = true
+    apply(d, offline.on_queue(d, { text = json.encode({ account_id = "account-one", active = { playlist = "user_1", uri = URI }, items = {} }) }))
+    assert_nil(shell(offline.on_timer(d, { now = 10 }), "offline_sync"))
+    apply(d, offline.on_job(d, { text = json.encode({ version = 1, account_id = "account-one", uri = URI, request = "old-1", phase = "downloading", total = 18, completed = 7, process = { pid = 42, start = "123" } }) }))
+    assert_eq(#d.spotify_offline.queue, 0); assert_eq(d.spotify_offline.download.completed, 7)
+    assert_nil(shell(offline.on_timer(d, { now = 11 }), "offline_sync"))
+  end)
+  it("keeps common progress while new titles join the end of the queue", function()
+    local d = fixture(); d.spotify_offline.catalog_loaded = true
+    apply(d, offline.on_sync(d, { playlist = "user_1", now = 10 }))
+    local request = d.spotify_offline_int.job_request
+    local event = { text = json.encode({ version = 1, account_id = "account-one", uri = URI, request = request, phase = "complete", completed = 2, total = 2, skipped = 1 }) }
+    apply(d, offline.on_job(d, event)); apply(d, offline.on_job(d, event))
+    assert_eq(d.spotify_offline.queue_progress.completed, 2); assert_eq(d.spotify_offline.queue_progress.skipped, 1)
+    d.spotify_offline.download.phase = "downloading"
+    local track = "spotify:track:" .. string.rep("3", 22)
+    apply(d, offline.on_sync(d, { playlist = "user_1", index = 3, track_uri = track, now = 12 }))
+    assert_eq(d.spotify_offline.queue_progress.completed, 2); assert_eq(d.spotify_offline.queue[1].total, 1)
+    assert_eq(d.spotify_offline.queue[1].track_uri, track)
   end)
   it("pauses the remaining queue on a full card until explicitly continued", function()
     local d = fixture(); apply(d, offline.on_sync(d, { playlist = "user_1", now = 10 }))

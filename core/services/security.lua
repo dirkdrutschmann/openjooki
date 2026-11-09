@@ -38,6 +38,7 @@ function security._set_parent_code(v) parent_code = v end          -- tests only
 -- own list of message names; both ask security.gate.
 security.PROTECTED_V2 = {
   ["playlist.new"] = true, ["playlist.delete"] = true, ["playlist.update"] = true,
+  ["track.delete"] = true,
   ["playlist.add_track"] = true, ["playlist.add_stream"] = true, ["upload.add"] = true,
   ["token.edit"] = true, ["token.forget"] = true,
   ["device.test_volume"] = true, ["device.set_config"] = true, ["device.toy_safe"] = true, ["device.set_wifi"] = true,

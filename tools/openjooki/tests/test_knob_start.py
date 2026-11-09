@@ -6,7 +6,7 @@ A short turn stays next / previous; the other knob choices are untouched; with t
 down the same hold stays the parent-code gesture (10 s).
   python3 test_knob_start.py
 """
-import json, time
+import time
 import bench as B
 
 R = B.Results(); check = R.check
@@ -72,8 +72,8 @@ check("held to the right: one start", len(spy.payloads("/j/audio/out/play", n)) 
 
 # --- an audiobook forgets its place
 play_at(book, 2)
-j.c.publish("/j/audio/input/position", json.dumps({"id": 7, "pos": 90000}))
-j.wait_state("audio.playback.position_ms", pred=lambda v: v and v > 0)
+j.send("SEEK", {"position_ms": 90000})
+j.wait_state("audio.playback.position_ms", pred=lambda v: v and v >= 90000)
 j.send("DO_PAUSE", {}); j.wait_state("audio.playback.state", "PAUSED")
 j.send("DO_PLAY", {}); j.wait_state("audio.playback.state", "PLAYING")
 R.expect("audiobook: its place was saved first", lambda: (j.state.get("bedtime") or {}).get("resume", {}).get(book, {}).get("pos", 0) > 5000, 3, lambda: j.state.get("bedtime"))

@@ -152,6 +152,10 @@ H.SET_CFG_DEEZER = function(doc, p) return streaming.on_deezer_set_cfg(doc, p) e
 H.PLAYLIST_ADD_TRACK = function(doc, p) return lib(doc, { playlists = true }, function(l) return library.ops.playlist_add_track(l, p.playlistId, p.trackId) end) end
 H.PLAYLIST_ADD_STREAM = function(doc, p, ev) return lib(doc, { playlists = true, tracks = true }, function(l) return library.ops.playlist_add_stream(l, p.playlistId, p.title, p.url, ev.wall or ev.now or 0) end) end
 H.PLAYLIST_DELETE = function(doc, p) return lib(doc, { playlists = true, tracks = true }, function(l) return library.ops.playlist_delete(l, p.playlistId) end) end
+H.TRACK_DELETE = function(doc, p)
+  local r, err = library.delete_tracks(doc, p.trackIds)
+  return r, err, { "db", "device" }
+end
 H.PLAYLIST_UPDATE = function(doc, p)
   local pl = p.playlist
   if type(pl) ~= "table" then return nil, { code = "invalid_argument", field = "playlist", message = "missing playlist" } end
@@ -262,7 +266,7 @@ H.OJ_OFFLINE_RESUME_QUEUE = function(doc) return offline.on_resume_queue(doc) en
 H.OJ_OFFLINE_PLAY = function(doc, p, ev) return offline.on_play(doc, { playlist = p.playlistId, index = tonumber(p.trackIndex), track_uri = p.trackUri, now = ev.now }) end
 H.OJ_OFFLINE_CACHE_TRACK = function(doc, p, ev) return require("services.spotify_offline_items").on_cache(doc, { playlist = p.playlistId, index = p.trackIndex, track_uri = p.trackUri, play = p.play == true, now = ev.now }) end
 H.OJ_OFFLINE_SYNC = function(doc, p, ev) return offline.on_sync(doc, { playlist = p.playlistId, now = ev.now }) end
-H.OJ_OFFLINE_REMOVE = function(doc, p) return offline.on_remove(doc, { playlist = p.playlistId }) end
+H.OJ_OFFLINE_REMOVE = function(doc, p) return offline.on_remove(doc, { playlist = p.playlistId, track_uri = p.trackUri }) end
 H.OJ_OFFLINE_MODE = function(doc, p) return offline.on_mode(doc, { playlist = p.playlistId, mode = p.mode }) end
 H.OJ_OFFLINE_FORGET = function(doc) return offline.on_forget(doc) end
 
@@ -281,6 +285,7 @@ local PROTECTED = {
   PLAYLIST_NEW = true, PLAYLIST_NEW_DEEZER = true, PLAYLIST_NEW_SPOTIFY = true,
   PLAYLIST_ADD_TRACK = true, PLAYLIST_ADD_STREAM = true, PLAYLIST_ADD_UPLOAD = true,
   PLAYLIST_DELETE = true, PLAYLIST_UPDATE = true, TOKEN_EDIT = true, TOKEN_DELETE = true, TOKEN_SET_IMAGE = true,
+  TRACK_DELETE = true,
   OJ_VOLUME_TEST = true, SET_CFG = true, SET_TOY_SAFE = true, SET_WIFI = true, SHUTDOWN = true,
   DEEZER_GET_PLAYLISTS = true, SET_CFG_DEEZER = true, OJ_BEDTIME_SET = true,
   OJ_UPDATE_CHECK = true, OJ_UPDATE_START = true, OJ_SET_NAME = true,

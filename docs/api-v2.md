@@ -19,7 +19,7 @@ The v1 contract (`/j/web/input/*`, `/j/web/output/*`) is still served, by `core/
 
 `device`, `health`, `library` {playlists, tracks, tokens}, `playback` {state, position_ms, now}, `audiocfg`, `volume_test` {active, target, percent, error}, `resume`, `bedtime` {cfg, night, sleep}, `limits`, `net`, `bluetooth`, `power`, `nfc`, `userMessages`, `spotify`, `spotify_offline` {availability, account and metadata readiness, playlists, modes, download, queue, jobs, previews, auth, player, storage}, `deezer`, `flags`, `maintenance` {ssh, ssh_until, ssh_keys, mqtt_lan, parent}, `net_watch`. (Private sub-trees — `config`, `system`, `activity`, every `*_int` — are not published.)
 
-## Commands (51)
+## Commands (52)
 
 ### `bedtime.set`
 
@@ -881,6 +881,11 @@ Payload schema:
       "maxLength": 100,
       "minLength": 1,
       "type": "string"
+    },
+    "track_uri": {
+      "maxLength": 36,
+      "minLength": 36,
+      "type": "string"
     }
   },
   "required": ["playlist"],
@@ -974,6 +979,32 @@ Payload schema:
     }
   },
   "required": ["tagId"],
+  "type": "object"
+}
+```
+
+### `track.delete`
+
+Permanently deletes local files and removes the selected tracks from every playlist. Protected by the parent code.
+
+Payload schema:
+
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "trackIds": {
+      "items": {
+        "maxLength": 80,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": ["trackIds"],
   "type": "object"
 }
 ```

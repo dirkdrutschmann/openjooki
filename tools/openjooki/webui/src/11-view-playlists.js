@@ -18,7 +18,7 @@
         h('div', { class: 'ph' }, tokVisual(p.star, 'sm', S.nfc.starId && S.nfc.starId === p.star)),
         h('div', { class: 'name' }, p.title || '—'),
         h('div', { class: 'pl-footer' },
-          h('div', { class: 'meta' }, p.spotify ? t('sp_playlist') : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : ''),
+          h('div', { class: 'meta' + (p.spotify ? ' services' : '') }, p.spotify ? h('span', { class: 'playlist-service', role: 'img', title: t('sp_playlist'), 'aria-label': t('sp_playlist') }, icon('spotify')) : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : ''),
             spotifyStorageBadge(p)),
           n || p.spotify ? h('button', { class: 'icon-btn accent play', 'aria-label': t('play') + ' ' + (p.title || ''), onclick: function (e) {
             e.stopPropagation(); playPlaylist(p); } }, icon('play')) : null));

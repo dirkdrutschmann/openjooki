@@ -29,7 +29,7 @@ q = shlex.quote
 def compatible_base(installed, target):
     if installed == target or installed == target + '-offline':
         return True
-    if re.fullmatch(re.escape(target) + r'-offline\.[1-9][0-9]*', installed):
+    if re.fullmatch(re.escape(target) + r'(?:\+|-)offline(?:\.[1-9][0-9]*)?', installed):
         return True
     return target == '2.5.1' and re.fullmatch(r'2\.(?:4\.21|5\.0)(?:-offline(?:\.[1-9][0-9]*)?)?', installed) is not None
 
@@ -44,7 +44,7 @@ def package(path):
                 raise ValueError('Too many package files')
             files[member.name] = archive.extractfile(member).read()
     manifest = json.loads(files.pop('manifest.json'))
-    if manifest['format'] != 1 or manifest['sd_root'] != SD_ROOT or not re.fullmatch(r'2\.(?:4\.21|5\.1)-offline(?:\.[1-9][0-9]*)?', manifest['version']):
+    if manifest['format'] != 1 or manifest['sd_root'] != SD_ROOT or not re.fullmatch(r'2\.(?:4\.21|5\.1)(?:\+|-)offline(?:\.[1-9][0-9]*)?', manifest['version']):
         raise ValueError('Unsupported package')
     if set(files) != set(manifest['files']):
         raise ValueError('Package inventory differs from its manifest')

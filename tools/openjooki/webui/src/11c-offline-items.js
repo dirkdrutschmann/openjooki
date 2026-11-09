@@ -19,9 +19,9 @@
   }
   function offlineTitleChanged(before, after) {
     if (!before || before.account_id !== after.account_id) return;
-    var old = obj(before.playlists), fresh = obj(after.playlists), account = after.account_id || '';
+    var old = Object.assign({}, obj(before.partials), obj(before.playlists)), fresh = Object.assign({}, obj(after.partials), obj(after.playlists)), account = after.account_id || '';
     Object.keys(old).concat(Object.keys(fresh)).filter(function (uri, i, a) { return a.indexOf(uri) === i; }).forEach(function (uri) {
-      if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready) return;
+      if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready && obj(old[uri]).cached_tracks === obj(fresh[uri]).cached_tracks) return;
       var prefix = account + ':' + uri + ':';
       Object.keys(offlinePreviewCache).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlinePreviewCache[k]; });
       Object.keys(offlineTitleScans).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlineTitleScans[k]; });
@@ -107,37 +107,63 @@
   function spotifyStoredTrack(p, track) {
     var o = obj(S.spotifyOffline), snap = obj(obj(o.playlists)[p.spotify.uri]), result = snap.ready && track.cached === undefined && !track.problem ? Object.assign({}, track, { cached: true }) : track;
     [arr(snap.tracks), arr(obj(o.download).uri === p.spotify.uri ? obj(o.download).tracks : [])].forEach(function (list) {
-      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (t.cached === true || (t.cached === undefined && t.bytes > 0))) result = Object.assign({}, track, { cached: true, image: t.image || track.image }); });
+      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (typeof t.cached === 'boolean' || t.bytes > 0)) result = Object.assign({}, track, { cached: t.cached !== false, image: t.image || track.image }); });
     });
     return result;
   }
+  function spotifyQueueProgress(o) {
+    var active = obj(o.download), waiting = arr(o.queue), done = obj(o.queue_progress), busy = offlineBusy();
+    if (!busy && !waiting.length) return null;
+    var completed = Number(done.completed) || 0, total = Number(done.total) || 0, unknown = false;
+    if (busy) { completed += Number(active.completed) || 0; total += Number(active.total) || 0; unknown = !Number(active.total); }
+    waiting.forEach(function (item) {
+      var count = Number(item.total) || Number(obj(obj(o.playlists)[item.uri]).total_tracks) || Number(obj(obj(o.partials)[item.uri]).total_tracks) || (item.track_uri ? 1 : 0);
+      if (!count) unknown = true;
+      total += count;
+    });
+    var playlist = userPlaylists().filter(function (p) { return p.spotify && p.spotify.uri === active.uri; })[0];
+    return h('div', { class: 'offline-progress compact', role: 'status', 'data-k': 'offline-progress' },
+      icon('download'), h('span', { class: 'grow' }, t('of_queue') + ' · ' + (busy ? t('of_busy') : t('of_queued')),
+        busy && playlist ? [' · ', h('a', { href: '#/p/' + encodeURIComponent(playlist.id) }, playlist.title || 'Spotify')] : null),
+      h('b', null, completed + ' / ' + (unknown ? '…' : total)),
+      h('progress', { max: Math.max(1, total), value: completed, 'aria-label': t('of_queue') }));
+  }
   function spotifyStorageBadge(p) {
-    var o = obj(S.spotifyOffline);
+    var o = obj(S.spotifyOffline), ready = false, count = 0, total = 0, downloading = false;
     if (!p.spotify) {
-      var files = arr(p.tracks), stored = files.filter(function (id) { var t = obj(S.db.tracks[id]); return t.filename && !t.isUrl; }).length;
-      return files.length ? h('div', { class: 'pl-offline-status' }, h('span', { class: 'offline-badge' + (stored === files.length ? ' ready' : '') },
-        icon(stored === files.length ? 'check' : 'globe'), stored ? t('of_stored_count', stored, files.length) : t('of_online_badge'))) : null;
+      var files = arr(p.tracks);
+      if (!files.length) return null;
+      count = files.filter(function (id) { var track = obj(S.db.tracks[id]); return track.filename && !track.isUrl; }).length;
+      total = files.length; ready = count === total;
+    } else {
+      if (!o.available) return null;
+      var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]), job = obj(obj(o.jobs)[p.spotify.uri]);
+      ready = !!snap.ready;
+      count = snap.cached_tracks !== undefined ? Number(snap.cached_tracks) : partial.cached_tracks !== undefined ? Number(partial.cached_tracks) : (ready ? Number(snap.total_tracks) : Number(job.completed) - Number(job.skipped || 0)) || 0;
+      if (snap.cached_tracks === 0) ready = false;
+      total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
+      downloading = obj(o.download).uri === p.spotify.uri && offlineBusy();
     }
-    if (!o.available) return null;
-    var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]);
-    var job = obj(obj(o.jobs)[p.spotify.uri]), count = snap.cached_tracks !== undefined ? Number(snap.cached_tracks) : partial.cached_tracks !== undefined ? Number(partial.cached_tracks) : (snap.ready ? Number(snap.total_tracks) : Number(job.completed) - Number(job.skipped || 0)) || 0;
-    var total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
-    var downloading = obj(o.download).uri === p.spotify.uri && offlineBusy(), mode = obj(o.modes)[p.id] || 'online';
-    return h('div', { class: 'pl-offline-status' },
-      h('span', { class: 'offline-badge' + (snap.ready ? ' ready' : ''), 'data-k': 'playlist-cache' },
-        icon(snap.ready ? 'check' : count ? 'disk' : 'globe'), downloading ? t('of_busy') : count ? t('of_stored_count', count, total || count) : t('of_online_badge')),
-      snap.ready ? h('span', { class: 'small muted' }, t(mode === 'online' ? 'of_route_online' : 'of_route_offline')) : null);
+    var label = downloading ? t('of_busy') : ready ? t('of_ready') : count ? t('of_stored_count', count, total || count) : t('of_online_badge');
+    return h('span', { class: 'offline-badge status-icon' + (ready ? ' ready' : ''), role: 'img', title: label, 'aria-label': label, 'data-k': 'playlist-cache' },
+      icon(downloading ? 'download' : ready ? 'check' : count ? 'disk' : 'globe'));
   }
   function spotifyTrackActions(p, track, position, busy) {
     var o = obj(S.spotifyOffline), queued = arr(o.queue).some(function (q) { return q.uri === p.spotify.uri && q.track_uri === track.uri; });
     if (!o.account_ready || spotifyTrackUnavailable(track)) return null;
     var current = obj(o.download), loading = busy && current.uri === p.spotify.uri && (!current.track_uri || current.track_uri === track.uri);
-    var label = track.cached ? t('of_item_stored') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
+    var label = track.cached ? t('of_remove_item') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
     function cache(play) { send('OJ_OFFLINE_CACHE_TRACK', { playlistId: p.id, trackIndex: position, trackUri: track.uri, play: play }); }
+    var inUse = obj(S.audio.nowPlaying).service === 'SPOTIFY_OFFLINE' && obj(S.audio.nowPlaying).playlistId === p.id && !/^(STOPPED|ENDED)$/.test(obj(S.audio.playback).state || '');
     return h('span', { class: 'offline-track-actions' },
-      h('button', { class: 'offline-chip' + (track.cached ? ' ready' : ''), disabled: track.cached || loading || queued || !o.account_ready,
-        title: label, 'aria-label': label + ': ' + (track.name || ''), 'data-track-cache': track.uri,
-        onclick: function () { cache(false); } }, icon(track.cached ? 'check' : 'download')),
+      h('button', { class: 'offline-chip' + (track.cached ? ' ready' : ''), disabled: loading || queued || !o.account_ready || (track.cached && (busy || inUse)),
+        title: label, 'aria-label': label + ': ' + (track.name || ''), 'data-track-cache': track.uri, 'data-track-remove': track.cached ? track.uri : null,
+        onclick: function () {
+          if (!track.cached) { cache(false); return; }
+          confirmBox(t('of_remove_q'), t('of_remove_item_help', track.name || ''), t('of_remove'), true).then(function (yes) {
+            if (yes) send('OJ_OFFLINE_REMOVE', { playlistId: p.id, trackUri: track.uri });
+          });
+        } }, icon(track.cached ? 'check' : 'download')),
       o.account_ready ? h('button', { class: 'icon-btn', disabled: busy || queued, title: t('of_play_item'),
         'aria-label': t('of_play_item') + ': ' + (track.name || ''), 'data-track-play': track.uri,
         onclick: function () {

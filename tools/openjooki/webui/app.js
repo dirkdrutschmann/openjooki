@@ -40,7 +40,7 @@
     select_all: 'Tout sélectionner', select_none: 'Tout désélectionner',
     delete_forever: 'Supprimer du Jooki',
     delete_forever_q: function (n) { return 'Supprimer définitivement ' + n + (n > 1 ? ' morceaux' : ' morceau') + ' ?'; },
-    delete_forever_text: 'Les fichiers seront effacés du Jooki. Cette action est irréversible.',
+    delete_forever_text: 'Efface les fichiers et retire ces titres de toutes les playlists. Irréversible.',
     deleted: 'Supprimé', choose_playlist: 'Choisir une playlist', added: function (n) { return n + (n > 1 ? ' morceaux ajoutés' : ' morceau ajouté'); },
     already_in: 'déjà dedans', add: 'Ajouter', add_n: function (n) { return 'Ajouter ' + n; },
     library_empty: 'Aucun morceau sur le Jooki.', unused_empty: 'Tous les morceaux sont dans une playlist.',
@@ -87,6 +87,9 @@
     of_unavailable_list: 'Titres indisponibles', of_unavailable_none: 'Aucun titre indisponible dans cette playlist.', of_search_empty: 'Aucun titre disponible correspondant.',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' titre indisponible masqué sur cette page' : ' titres indisponibles masqués sur cette page'); },
     of_filtered_empty: 'Aucun titre disponible sur cette page. Choisissez Suivant pour continuer.',
+    upd_no_release: 'Aucune mise à jour automatique n’est publiée pour ce canal.',
+    of_remove_item: 'Supprimer ce titre enregistré',
+    of_remove_item_help: function (title) { return 'Seul le fichier téléchargé de « ' + title + ' » sera supprimé. La playlist Spotify sera conservée.'; },
     of_cache_item: 'Enregistrer ce titre hors ligne',
     of_item_stored: 'Enregistré hors ligne',
     of_play_item: 'Lire ce titre',
@@ -266,7 +269,7 @@
     select_all: 'Select all', select_none: 'Deselect all',
     delete_forever: 'Delete from Jooki',
     delete_forever_q: function (n) { return 'Permanently delete ' + n + (n === 1 ? ' track' : ' tracks') + '?'; },
-    delete_forever_text: 'The files will be erased from the Jooki. This cannot be undone.',
+    delete_forever_text: 'Deletes these files from the Jooki and removes them from every playlist. This cannot be undone.',
     deleted: 'Deleted', choose_playlist: 'Choose a playlist', added: function (n) { return n + (n === 1 ? ' track added' : ' tracks added'); },
     already_in: 'already in', add: 'Add', add_n: function (n) { return 'Add ' + n; },
     library_empty: 'No track on the Jooki.', unused_empty: 'Every track is in a playlist.',
@@ -313,6 +316,9 @@
     of_unavailable_list: 'Unavailable songs', of_unavailable_none: 'No unavailable songs in this playlist.', of_search_empty: 'No matching available songs.',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' unavailable song hidden on this page' : ' unavailable songs hidden on this page'); },
     of_filtered_empty: 'There are no available songs on this page. Choose Next to continue.',
+    upd_no_release: 'No automatic update is published for this update channel.',
+    of_remove_item: 'Remove this saved song',
+    of_remove_item_help: function (title) { return 'Remove only the downloaded file for “' + title + '”. The Spotify playlist is kept.'; },
     of_cache_item: 'Save this song offline',
     of_item_stored: 'Saved offline',
     of_play_item: 'Play this song',
@@ -484,7 +490,7 @@
     unused_banner: function (n) { return n + (n === 1 ? ' Titel gehört' : ' Titel gehören') + ' zu keiner Wiedergabeliste.'; }, see: 'Anzeigen',
     all: 'Alle', unused: 'Unbenutzt', search: 'Suchen', in_playlists: 'In: ', in_none: 'In keiner Wiedergabeliste', add_to: 'Hinzufügen zu…',
     selected: function (n) { return n + ' ausgewählt'; }, select_all: 'Alle auswählen', select_none: 'Auswahl aufheben', delete_forever: 'Vom Jooki löschen',
-    delete_forever_q: function (n) { return n + ' Titel endgültig löschen?'; }, delete_forever_text: 'Die Dateien werden vom Jooki gelöscht. Das lässt sich nicht rückgängig machen.',
+    delete_forever_q: function (n) { return n + ' Titel endgültig löschen?'; }, delete_forever_text: 'Löscht die Dateien vom Jooki und entfernt die Titel aus allen Wiedergabelisten. Unwiderruflich.',
     deleted: 'Gelöscht', choose_playlist: 'Wiedergabeliste auswählen', added: function (n) { return n + ' Titel hinzugefügt'; },
     already_in: 'bereits in', add: 'Hinzufügen', add_n: function (n) { return n + ' hinzufügen'; },
     library_empty: 'Noch keine Titel auf dem Jooki.', unused_empty: 'Alle Titel gehören zu einer Wiedergabeliste.',
@@ -522,6 +528,9 @@
     of_unavailable_list: 'Nicht verfügbare Titel', of_unavailable_none: 'In dieser Wiedergabeliste sind keine nicht verfügbaren Titel.', of_search_empty: 'Keine passenden verfügbaren Titel.',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' nicht verfügbarer Titel auf dieser Seite ausgeblendet' : ' nicht verfügbare Titel auf dieser Seite ausgeblendet'); },
     of_filtered_empty: 'Auf dieser Seite sind keine verfügbaren Titel. Blättere mit „Weiter“ zur nächsten Seite.',
+    upd_no_release: 'Für diesen Updatekanal ist kein automatisches Update veröffentlicht.',
+    of_remove_item: 'Offline-Kopie dieses Titels entfernen',
+    of_remove_item_help: function (title) { return 'Nur die gespeicherte Datei von „' + title + '“ wird entfernt. Die Spotify-Playlist bleibt erhalten.'; },
     of_cache_item: 'Diesen Titel offline speichern',
     of_item_stored: 'Offline gespeichert',
     of_play_item: 'Diesen Titel abspielen',
@@ -606,7 +615,7 @@
     select_all: 'Alles selecteren', select_none: 'Selectie opheffen',
     delete_forever: 'Van de Jooki verwijderen',
     delete_forever_q: function (n) { return n + (n === 1 ? ' nummer' : ' nummers') + ' definitief verwijderen?'; },
-    delete_forever_text: 'De bestanden worden van de Jooki gewist. Dit kan niet ongedaan worden gemaakt.',
+    delete_forever_text: 'Verwijdert bestanden en nummers uit alle afspeellijsten. Niet ongedaan te maken.',
     deleted: 'Verwijderd', choose_playlist: 'Kies een afspeellijst', added: function (n) { return n + (n === 1 ? ' nummer toegevoegd' : ' nummers toegevoegd'); },
     already_in: 'zit er al in', add: 'Toevoegen', add_n: function (n) { return n + ' toevoegen'; },
     library_empty: 'Geen nummers op de Jooki.', unused_empty: 'Elk nummer zit in een afspeellijst.',
@@ -653,6 +662,9 @@
     of_unavailable_list: 'Niet-beschikbare nummers', of_unavailable_none: 'Deze afspeellijst bevat geen niet-beschikbare nummers.', of_search_empty: 'Geen overeenkomende beschikbare nummers.',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' niet-beschikbaar nummer verborgen op deze pagina' : ' niet-beschikbare nummers verborgen op deze pagina'); },
     of_filtered_empty: 'Er zijn geen beschikbare nummers op deze pagina. Kies Volgende om verder te gaan.',
+    upd_no_release: 'Er is geen automatische update gepubliceerd voor dit updatekanaal.',
+    of_remove_item: 'Dit opgeslagen nummer verwijderen',
+    of_remove_item_help: function (title) { return 'Alleen het gedownloade bestand van “' + title + '” wordt verwijderd. De Spotify-afspeellijst blijft behouden.'; },
     of_cache_item: 'Dit nummer offline opslaan',
     of_item_stored: 'Offline opgeslagen',
     of_play_item: 'Dit nummer afspelen',
@@ -1079,6 +1091,7 @@
     el.appendChild(typeof c === 'object' ? c : document.createTextNode(String(c)));
   }
   var ICONS = {
+    spotify: '<circle cx="12" cy="12" r="9"/><path d="M6.5 9a15 15 0 0 1 11 .8M7.3 12a12 12 0 0 1 9.4 .7M8 15a9 9 0 0 1 7.8 .5"/>',
     list: '<path d="M4 6h16M4 12h16M4 18h10"/>',
     token: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
     lib: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
@@ -1120,6 +1133,7 @@
     up: '<path d="M12 19V6M6 11l6-6 6 6"/>',
     bat: '<rect x="2.5" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/>',
     disk: '<rect x="4" y="3" width="16" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M8 17h8"/>',
+    folder: '<path d="M3.5 6.5h6l2 2h9v10h-17z"/><path d="M3.5 9h17"/>',
     tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1"/>',
     heart: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
     knob: '<circle cx="12" cy="12" r="8"/><path d="M12 12V5.5"/>'
@@ -1225,12 +1239,12 @@
   }
   function userPlaylists() { return index().userPlaylists; }
   function trackTitle(id) { var tr = S.db.tracks[id]; if (!tr) return '?'; return cleanTitle(tr.title || tr.userFilename || id); }
-  function trackSub(tr) {
+  function trackSub(tr, omitAlbum) {
     if (!tr) return '';
     if (tr.isUrl) return t('radio') + ' · ' + (tr.filename || '');
     var bits = [];
     if (tr.artist && tr.artist !== 'unknown') bits.push(tr.artist);
-    if (tr.album && tr.album !== 'unknown') bits.push(tr.album);
+    if (!omitAlbum && tr.album && tr.album !== 'unknown') bits.push(tr.album);
     if (tr.duration) bits.push(fmtTime(tr.duration));
     return bits.join(' · ');
   }
@@ -2200,7 +2214,7 @@
   window.addEventListener('hashchange', function () { ui.sel = {}; ui.search = ''; ui.editTitle = null; window.scrollTo(0, 0); render(); });
 
   /* ------------------------------------------------------------------ UI state */
-  var ui = { search: '', sel: {}, editTitle: null, dragging: false };
+  var ui = { search: '', sel: {}, libOpen: {}, editTitle: null, dragging: false };
 
   /* ------------------------------------------------------------------ views */
   function playPlaylist(p) {
@@ -2222,7 +2236,7 @@
         h('div', { class: 'ph' }, tokVisual(p.star, 'sm', S.nfc.starId && S.nfc.starId === p.star)),
         h('div', { class: 'name' }, p.title || '—'),
         h('div', { class: 'pl-footer' },
-          h('div', { class: 'meta' }, p.spotify ? t('sp_playlist') : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : ''),
+          h('div', { class: 'meta' + (p.spotify ? ' services' : '') }, p.spotify ? h('span', { class: 'playlist-service', role: 'img', title: t('sp_playlist'), 'aria-label': t('sp_playlist') }, icon('spotify')) : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : ''),
             spotifyStorageBadge(p)),
           n || p.spotify ? h('button', { class: 'icon-btn accent play', 'aria-label': t('play') + ' ' + (p.title || ''), onclick: function (e) {
             e.stopPropagation(); playPlaylist(p); } }, icon('play')) : null));
@@ -2663,9 +2677,9 @@
   }
   function offlineTitleChanged(before, after) {
     if (!before || before.account_id !== after.account_id) return;
-    var old = obj(before.playlists), fresh = obj(after.playlists), account = after.account_id || '';
+    var old = Object.assign({}, obj(before.partials), obj(before.playlists)), fresh = Object.assign({}, obj(after.partials), obj(after.playlists)), account = after.account_id || '';
     Object.keys(old).concat(Object.keys(fresh)).filter(function (uri, i, a) { return a.indexOf(uri) === i; }).forEach(function (uri) {
-      if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready) return;
+      if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready && obj(old[uri]).cached_tracks === obj(fresh[uri]).cached_tracks) return;
       var prefix = account + ':' + uri + ':';
       Object.keys(offlinePreviewCache).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlinePreviewCache[k]; });
       Object.keys(offlineTitleScans).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlineTitleScans[k]; });
@@ -2751,37 +2765,63 @@
   function spotifyStoredTrack(p, track) {
     var o = obj(S.spotifyOffline), snap = obj(obj(o.playlists)[p.spotify.uri]), result = snap.ready && track.cached === undefined && !track.problem ? Object.assign({}, track, { cached: true }) : track;
     [arr(snap.tracks), arr(obj(o.download).uri === p.spotify.uri ? obj(o.download).tracks : [])].forEach(function (list) {
-      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (t.cached === true || (t.cached === undefined && t.bytes > 0))) result = Object.assign({}, track, { cached: true, image: t.image || track.image }); });
+      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (typeof t.cached === 'boolean' || t.bytes > 0)) result = Object.assign({}, track, { cached: t.cached !== false, image: t.image || track.image }); });
     });
     return result;
   }
+  function spotifyQueueProgress(o) {
+    var active = obj(o.download), waiting = arr(o.queue), done = obj(o.queue_progress), busy = offlineBusy();
+    if (!busy && !waiting.length) return null;
+    var completed = Number(done.completed) || 0, total = Number(done.total) || 0, unknown = false;
+    if (busy) { completed += Number(active.completed) || 0; total += Number(active.total) || 0; unknown = !Number(active.total); }
+    waiting.forEach(function (item) {
+      var count = Number(item.total) || Number(obj(obj(o.playlists)[item.uri]).total_tracks) || Number(obj(obj(o.partials)[item.uri]).total_tracks) || (item.track_uri ? 1 : 0);
+      if (!count) unknown = true;
+      total += count;
+    });
+    var playlist = userPlaylists().filter(function (p) { return p.spotify && p.spotify.uri === active.uri; })[0];
+    return h('div', { class: 'offline-progress compact', role: 'status', 'data-k': 'offline-progress' },
+      icon('download'), h('span', { class: 'grow' }, t('of_queue') + ' · ' + (busy ? t('of_busy') : t('of_queued')),
+        busy && playlist ? [' · ', h('a', { href: '#/p/' + encodeURIComponent(playlist.id) }, playlist.title || 'Spotify')] : null),
+      h('b', null, completed + ' / ' + (unknown ? '…' : total)),
+      h('progress', { max: Math.max(1, total), value: completed, 'aria-label': t('of_queue') }));
+  }
   function spotifyStorageBadge(p) {
-    var o = obj(S.spotifyOffline);
+    var o = obj(S.spotifyOffline), ready = false, count = 0, total = 0, downloading = false;
     if (!p.spotify) {
-      var files = arr(p.tracks), stored = files.filter(function (id) { var t = obj(S.db.tracks[id]); return t.filename && !t.isUrl; }).length;
-      return files.length ? h('div', { class: 'pl-offline-status' }, h('span', { class: 'offline-badge' + (stored === files.length ? ' ready' : '') },
-        icon(stored === files.length ? 'check' : 'globe'), stored ? t('of_stored_count', stored, files.length) : t('of_online_badge'))) : null;
+      var files = arr(p.tracks);
+      if (!files.length) return null;
+      count = files.filter(function (id) { var track = obj(S.db.tracks[id]); return track.filename && !track.isUrl; }).length;
+      total = files.length; ready = count === total;
+    } else {
+      if (!o.available) return null;
+      var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]), job = obj(obj(o.jobs)[p.spotify.uri]);
+      ready = !!snap.ready;
+      count = snap.cached_tracks !== undefined ? Number(snap.cached_tracks) : partial.cached_tracks !== undefined ? Number(partial.cached_tracks) : (ready ? Number(snap.total_tracks) : Number(job.completed) - Number(job.skipped || 0)) || 0;
+      if (snap.cached_tracks === 0) ready = false;
+      total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
+      downloading = obj(o.download).uri === p.spotify.uri && offlineBusy();
     }
-    if (!o.available) return null;
-    var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]);
-    var job = obj(obj(o.jobs)[p.spotify.uri]), count = snap.cached_tracks !== undefined ? Number(snap.cached_tracks) : partial.cached_tracks !== undefined ? Number(partial.cached_tracks) : (snap.ready ? Number(snap.total_tracks) : Number(job.completed) - Number(job.skipped || 0)) || 0;
-    var total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
-    var downloading = obj(o.download).uri === p.spotify.uri && offlineBusy(), mode = obj(o.modes)[p.id] || 'online';
-    return h('div', { class: 'pl-offline-status' },
-      h('span', { class: 'offline-badge' + (snap.ready ? ' ready' : ''), 'data-k': 'playlist-cache' },
-        icon(snap.ready ? 'check' : count ? 'disk' : 'globe'), downloading ? t('of_busy') : count ? t('of_stored_count', count, total || count) : t('of_online_badge')),
-      snap.ready ? h('span', { class: 'small muted' }, t(mode === 'online' ? 'of_route_online' : 'of_route_offline')) : null);
+    var label = downloading ? t('of_busy') : ready ? t('of_ready') : count ? t('of_stored_count', count, total || count) : t('of_online_badge');
+    return h('span', { class: 'offline-badge status-icon' + (ready ? ' ready' : ''), role: 'img', title: label, 'aria-label': label, 'data-k': 'playlist-cache' },
+      icon(downloading ? 'download' : ready ? 'check' : count ? 'disk' : 'globe'));
   }
   function spotifyTrackActions(p, track, position, busy) {
     var o = obj(S.spotifyOffline), queued = arr(o.queue).some(function (q) { return q.uri === p.spotify.uri && q.track_uri === track.uri; });
     if (!o.account_ready || spotifyTrackUnavailable(track)) return null;
     var current = obj(o.download), loading = busy && current.uri === p.spotify.uri && (!current.track_uri || current.track_uri === track.uri);
-    var label = track.cached ? t('of_item_stored') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
+    var label = track.cached ? t('of_remove_item') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
     function cache(play) { send('OJ_OFFLINE_CACHE_TRACK', { playlistId: p.id, trackIndex: position, trackUri: track.uri, play: play }); }
+    var inUse = obj(S.audio.nowPlaying).service === 'SPOTIFY_OFFLINE' && obj(S.audio.nowPlaying).playlistId === p.id && !/^(STOPPED|ENDED)$/.test(obj(S.audio.playback).state || '');
     return h('span', { class: 'offline-track-actions' },
-      h('button', { class: 'offline-chip' + (track.cached ? ' ready' : ''), disabled: track.cached || loading || queued || !o.account_ready,
-        title: label, 'aria-label': label + ': ' + (track.name || ''), 'data-track-cache': track.uri,
-        onclick: function () { cache(false); } }, icon(track.cached ? 'check' : 'download')),
+      h('button', { class: 'offline-chip' + (track.cached ? ' ready' : ''), disabled: loading || queued || !o.account_ready || (track.cached && (busy || inUse)),
+        title: label, 'aria-label': label + ': ' + (track.name || ''), 'data-track-cache': track.uri, 'data-track-remove': track.cached ? track.uri : null,
+        onclick: function () {
+          if (!track.cached) { cache(false); return; }
+          confirmBox(t('of_remove_q'), t('of_remove_item_help', track.name || ''), t('of_remove'), true).then(function (yes) {
+            if (yes) send('OJ_OFFLINE_REMOVE', { playlistId: p.id, trackUri: track.uri });
+          });
+        } }, icon(track.cached ? 'check' : 'download')),
       o.account_ready ? h('button', { class: 'icon-btn', disabled: busy || queued, title: t('of_play_item'),
         'aria-label': t('of_play_item') + ': ' + (track.name || ''), 'data-track-play': track.uri,
         onclick: function () {
@@ -2848,14 +2888,14 @@
     return ids.sort(function (a, b) { var ta = S.db.tracks[a], tb = S.db.tracks[b]; return c.compare(ta.album || '', tb.album || '') || c.compare(trackTitle(a), trackTitle(b)); });
   }
   // a track row with its checkbox (the library, "From the library"): tapping the row toggles it too.
-  // o: checked, set(v), title, track (data-track), inner (under the title), after (end of the row)
+  // o: checked, set(v), title, track (data-track), sub, inner (under the title), after (end of the row)
   function trackCheckRow(k, o) {
     var tr = S.db.tracks[k];
     var check;
     function set(v) { o.checked = !!v; check.checked = o.checked; o.set(o.checked); }
     return h('li', { class: 'clickable', 'data-track': o.track, onclick: function (e) { if (e.target.tagName !== 'INPUT') set(!o.checked); } },
       check = h('input', { type: 'checkbox', class: 'check', checked: o.checked, 'aria-label': trackTitle(k), onchange: function (e) { set(e.target.checked); } }),
-      h('div', { class: 'grow' }, h('div', { class: 'title ellipsis' }, o.title), h('div', { class: 'sub ellipsis' }, trackSub(tr)), o.inner),
+      h('div', { class: 'grow' }, h('div', { class: 'title ellipsis' }, o.title), h('div', { class: 'sub ellipsis' }, o.sub === undefined ? trackSub(tr) : o.sub), o.inner),
       o.after);
   }
   function libraryPickerModal(p) {
@@ -2916,13 +2956,37 @@
     tab = tab === 'unused' ? 'unused' : 'all';
     var un = unusedIds();
     var unSet = {}; un.forEach(function (x) { unSet[x] = true; });
-    var where = {};
-    userPlaylists().forEach(function (p) { arr(p.tracks).forEach(function (x) { (where[x] = where[x] || []).push(p.title || '—'); }); });
+    var where = {}, playlists = userPlaylists();
+    playlists.forEach(function (p) { arr(p.tracks).forEach(function (x) { (where[x] = where[x] || []).push(p.title || '—'); }); });
     var all = filterSortTracks(Object.keys(S.db.tracks).filter(function (k) { return tab === 'all' || unSet[k]; }), ui.search);
+    var grouped = {}, books = playlists.filter(function (p) { return p.audiobook; }).map(function (p) {
+      var tracks = arr(p.tracks).filter(function (k) { return all.indexOf(k) >= 0 && !grouped[k] && (grouped[k] = true); });
+      return { id: p.id, title: p.title || '—', tracks: tracks };
+    }).filter(function (book) { return book.tracks.length; });
+    var loose = all.filter(function (k) { return !grouped[k]; });
     Object.keys(ui.sel).forEach(function (k) { if (all.indexOf(k) < 0) delete ui.sel[k]; });
     var chosen = all.filter(function (k) { return ui.sel[k]; });
+    var deletable = chosen.filter(function (k) { return S.db.tracks[k] && !S.db.tracks[k].isUrl; });
     var nAll = Object.keys(S.db.tracks).length;
     var allChosen = all.length > 0 && chosen.length === all.length;
+    function bookFolder(book) {
+      var bookChosen = book.tracks.length > 0 && book.tracks.every(function (k) { return !!ui.sel[k]; });
+      return h('details', { class: 'lib-folder', open: !!ui.libOpen[book.id], ontoggle: function (e) { ui.libOpen[book.id] = e.target.open; } },
+        h('summary', { class: 'lib-folder-head' },
+          h('span', { class: 'lib-folder-icon' }, icon('folder')),
+          h('span', { class: 'lib-folder-title ellipsis' }, book.title),
+          h('span', { class: 'lib-folder-count small muted' }, t('n_tracks', book.tracks.length))),
+        h('div', { class: 'actions lib-folder-actions', style: 'justify-content:flex-end;margin:2px 14px 8px 37px' },
+          h('button', { class: 'btn ghost', 'data-k': 'book-select-all', 'data-book-id': book.id, onclick: function () {
+            book.tracks.forEach(function (k) { ui.sel[k] = !bookChosen; }); render();
+          } }, bookChosen ? t('select_none') : t('select_all'))),
+        h('ul', { class: 'list lib-folder-tracks' }, book.tracks.map(function (k) {
+          var w = where[k];
+          return trackCheckRow(k, { track: k, checked: !!ui.sel[k], set: function (v) { ui.sel[k] = v; render(); },
+            title: trackTitle(k), sub: trackSub(S.db.tracks[k], true),
+            inner: w && w.length ? h('div', { class: 'sub ellipsis' }, t('in_playlists') + w.join(', ')) : null });
+        })));
+    }
     return [
       h('div', { class: 'tabs', role: 'tablist' },
         h('button', { class: tab === 'all' ? 'on' : '', role: 'tab', 'aria-selected': String(tab === 'all'), onclick: function () { go('#/library'); } }, t('all') + ' (' + nAll + ')'),
@@ -2935,21 +2999,20 @@
       uploadsBlock(null),
       h('div', { class: 'search' }, icon('search'), h('input', { class: 'input', 'data-k': 'libsearch', placeholder: t('search'), value: ui.search,
         oninput: function (e) { ui.search = e.target.value; render(); } })),
-      all.length ? h('ul', { class: 'card list' }, all.map(function (k) {
+      all.length ? h('div', { class: 'card lib-tree' }, books.map(bookFolder), loose.length ? h('ul', { class: 'list lib-loose' }, loose.map(function (k) {
         var tr = S.db.tracks[k];
         var w = where[k];
         return trackCheckRow(k, { track: k, checked: !!ui.sel[k], set: function (v) { ui.sel[k] = v; render(); }, title: (tr.isUrl ? '📻 ' : '') + trackTitle(k),
           inner: h('div', { class: 'sub ellipsis' }, w ? t('in_playlists') + w.join(', ') : t('in_none')) });
-      })) : h('div', { class: 'card empty' }, tab === 'unused' ? t('unused_empty') : t('library_empty')),
+      })) : null) : h('div', { class: 'card empty' }, tab === 'unused' ? t('unused_empty') : t('library_empty')),
       chosen.length ? h('div', { class: 'card selbar' },
         h('span', { class: 'grow small' }, t('selected', chosen.length)),
         h('button', { class: 'btn primary', onclick: function () { addToPlaylistModal(chosen); } }, t('add_to')),
-        tab === 'unused' ? h('button', { class: 'btn danger', onclick: function () {
-          confirmBox(t('delete_forever_q', chosen.length), t('delete_forever_text'), t('delete'), true).then(function (ok) {
+        deletable.length ? h('button', { class: 'btn danger', 'data-k': 'delete-tracks', onclick: function () {
+          confirmBox(t('delete_forever_q', deletable.length), t('delete_forever_text'), t('delete'), true).then(function (ok) {
             if (!ok) return;
-            var keep = unusedIds().filter(function (x) { return chosen.indexOf(x) < 0; });
-            send('PLAYLIST_UPDATE', { playlist: { id: 'TRASH', tracks: keep } });
-            ui.sel = {}; toast(t('deleted'));
+            send('TRACK_DELETE', { trackIds: deletable });
+            ui.sel = {}; render(); toast(t('deleted'));
           });
         } }, icon('trash'), t('delete_forever')) : null) : null
     ];
@@ -3413,7 +3476,8 @@
         var d = null;
         try { d = JSON.parse(txt); } catch (e) {}
         if (d && !d.pending) {
-          if (d.error || !d.version) { upd.state = 'offline'; }
+          if (d.error === 'no_release') { upd.state = 'no_release'; }
+          else if (d.error || !d.version) { upd.state = 'offline'; }
           else { upd.latest = String(d.version); upd.state = 'checked'; }
           render(); return;
         }
@@ -3521,7 +3585,7 @@
     var avail = upd.state === 'checked' && updateAvailable();
     var bad = upd.state === 'failed' || upd.state === 'offline';
     var look = avail ? ['up', 'accent'] : bad ? ['x', 'danger'] : upd.state === 'checked' ? ['check', 'ok'] : ['up', 'muted'];
-    var title = upd.state === 'checking' ? t('upd_checking') : upd.state === 'offline' ? t('upd_offline') : upd.state === 'failed' ? t('upd_failed')
+    var title = upd.state === 'checking' ? t('upd_checking') : upd.state === 'no_release' ? t('upd_no_release') : upd.state === 'offline' ? t('upd_offline') : upd.state === 'failed' ? t('upd_failed')
       : avail ? t('upd_available', upd.latest) : upd.state === 'checked' ? t('upd_uptodate') : 'OpenJooki ' + (cur || '—');
     return [
       h('div', { class: 'statuscard', 'data-k': 'updcard' }, h('div', { class: 'bigico ' + look[1] }, icon(look[0])),

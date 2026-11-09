@@ -136,6 +136,21 @@ describe("api.v1", function()
     assert_eq(r.commands[1].payload.msg, "invalid token type")
   end)
 
+  it("TRACK_DELETE removes each selected title from every playlist and deletes its file", function()
+    local doc = doc_with()
+    local track = "0123456789abcdef"
+    doc.library.playlists.p.tracks = { track }
+    doc.library.playlists.book = { title = "Book", audiobook = true, tracks = { track } }
+    local r = cmd(doc, "TRACK_DELETE", { trackIds = { track } })
+    assert_nil(r.state.library.tracks[track])
+    assert_eq(r.state.library.playlists.p.tracks, {})
+    assert_eq(r.state.library.playlists.book.tracks, {})
+    assert_true(has(r, "files.remove", "path", "/d/uploads/" .. track))
+    assert_eq(r.commands[#r.commands].event.parts, { "db", "device" })
+    local bad = cmd(doc, "TRACK_DELETE", { trackIds = { "missing" } })
+    assert_eq(bad.commands[1].payload.msg, "trackId invalid")
+  end)
+
   it("the page can set a playlist's random start and return to Settings", function()
     local doc = doc_with()
     local r = cmd(doc, "PLAYLIST_UPDATE", { playlist = { id = "p", random_start = true } })

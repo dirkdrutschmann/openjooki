@@ -178,6 +178,28 @@ main { flex: 1; width: 100%; max-width: 900px; margin: 0 auto; padding: 16px 16p
 .num { width: 24px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; flex: none; }
 .check { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
 
+/* ---------- audiobook folders in the library */
+.lib-tree { overflow: hidden; }
+.lib-folder + .lib-folder { border-top: 1px solid var(--line); }
+.lib-folder-head {
+  width: 100%; min-height: 68px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+  list-style: none; border: 0; border-radius: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer;
+}
+.lib-folder-head::-webkit-details-marker { display: none; }
+.lib-folder-head::marker { content: ''; }
+.lib-folder-head::before { content: '›'; width: 16px; flex: none; color: var(--muted); text-align: center; font-size: 22px; line-height: 1; transition: transform .15s; }
+.lib-folder[open] > .lib-folder-head::before { transform: rotate(90deg); }
+.lib-folder-head:hover { background: var(--panel-2); }
+.lib-folder-head:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.lib-folder-icon { display: grid; place-items: center; flex: none; width: 24px; height: 24px; color: var(--accent); }
+.lib-folder-icon svg { width: 23px; height: 23px; }
+.lib-folder-title { flex: 1; min-width: 0; font-weight: 700; }
+.lib-folder-tracks { margin: 0 14px 10px 37px; padding: 4px 0 4px 9px; border-left: 2px solid var(--line); }
+.lib-folder-tracks > li { min-height: 54px; padding: 8px 10px 8px 8px; border-top: 0; border-radius: 8px; gap: 8px; }
+.lib-folder-tracks > li:hover { background: var(--panel-2); }
+.lib-loose { border-top: 1px solid var(--line); }
+.lib-loose > li:first-child { border-top: 0; }
+
 /* ---------- playlists grid */
 .plgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .pl { position: relative; padding: 14px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; text-align: left; border: 0; color: inherit; min-height: 170px; }
@@ -553,10 +575,21 @@ button.srow:disabled { opacity: .5; cursor: default; }
 .offline-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
 .offline-track-actions { display: flex; align-items: center; gap: 4px; }
 .offline-chip { display: grid; place-items: center; width: 34px; height: 30px; padding: 5px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel-2); color: var(--accent); }
-.offline-chip.ready:disabled { color: #19834a; opacity: 1; background: #19834a15; }
+.offline-chip.ready { color: #19834a; opacity: 1; background: #19834a15; }
 .offline-chip svg { width: 18px; height: 18px; }
 
 .offline-filter { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 14px; }
 .offline-filter input { accent-color: var(--accent); }
 .offline-track.unavailable { color: var(--muted); }
 .offline-track.unavailable .offline-art { opacity: .45; filter: grayscale(1); }
+
+.pl .meta.services { display: flex; align-items: center; gap: 7px; }
+.playlist-service { display: inline-flex; color: #1b8a47; }
+.playlist-service svg { width: 23px; height: 23px; }
+.offline-badge.status-icon { display: inline-flex; width: 27px; height: 27px; padding: 5px; margin: 0; justify-content: center; }
+
+.offline-progress.compact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; }
+.offline-progress.compact > svg { width: 18px; height: 18px; }
+.offline-progress.compact progress { flex-basis: 100%; height: 4px; margin: 0; }
+
+.offline-progress.compact .grow { min-width: 0; overflow-wrap: anywhere; }

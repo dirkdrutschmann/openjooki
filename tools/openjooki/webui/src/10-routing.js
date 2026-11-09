@@ -8,5 +8,5 @@
   window.addEventListener('hashchange', function () { ui.sel = {}; ui.search = ''; ui.editTitle = null; window.scrollTo(0, 0); render(); });
 
   /* ------------------------------------------------------------------ UI state */
-  var ui = { search: '', sel: {}, editTitle: null, dragging: false };
+  var ui = { search: '', sel: {}, libOpen: {}, editTitle: null, dragging: false };
 

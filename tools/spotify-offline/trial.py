@@ -50,9 +50,8 @@ def prepare(work, source_name="source", patch_files=PATCHES):
     actual = run(["git", "diff", "--no-color", "--no-ext-diff", "--binary",
                   "--abbrev=7", "--unified=0", "HEAD"],
                  cwd=source, capture=True).stdout
-    staged = run(["git", "diff", "--cached", "--name-only"],
-                 cwd=source, capture=True).stdout
-    if staged or any(line.startswith("??") for line in status.splitlines()):
+    entries = status.splitlines()
+    if any(line.startswith("??") or (len(line) > 1 and line[0] != " ") for line in entries):
         raise ValueError("Checkout has local changes; choose a fresh --work-dir")
     # Compose patches through Git: later patches may modify the same Cargo files.
     applied = None
@@ -73,7 +72,11 @@ def prepare(work, source_name="source", patch_files=PATCHES):
         raise ValueError("Checkout differs from the reviewed trial patches; choose a fresh --work-dir")
     for patch in patch_files[applied:]:
         run(["git", "apply", "--check", "--unidiff-zero", str(patch)], cwd=source)
-        run(["git", "apply", "--intent-to-add", "--unidiff-zero", str(patch)], cwd=source)
+        run(["git", "apply", "--unidiff-zero", str(patch)], cwd=source)
+        new_files = run(["git", "ls-files", "--others", "--exclude-standard"],
+                        cwd=source, capture=True).stdout.splitlines()
+        for name in new_files:
+            run(["git", "add", "--intent-to-add", "--", name], cwd=source)
     return source
 
 
