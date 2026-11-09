@@ -27,6 +27,18 @@ describe("individual Spotify cache controls", function()
     assert_eq(d.spotify_offline.modes.user_1, "online")
     assert_nil(d.spotify_offline_int.pending_play)
   end)
+  it("retains a single-title selection when restoring an active download after restart", function()
+    local d = doc()
+    local r = items.on_cache(d, { playlist = "user_1", index = 52, track_uri = TRACK, now = 10 })
+    local saved
+    for _, c in ipairs(r.commands) do if c.kind == "files.write" and c.path:match("queue.json$") then saved = c.doc end end
+    assert_eq(saved.active.index, 52); assert_eq(saved.active.track_uri, TRACK)
+    local restored = doc(); restored.spotify_offline_int.restore_pending = true
+    apply(restored, offline.on_queue(restored, { text = json.encode(saved) }))
+    r = offline.on_timer(restored, { now = 20 })
+    local c = find(r, "shell", "action", "offline_cache_track")
+    assert_true(c); assert_eq(c.args.index, 51); assert_eq(c.args.track_uri, TRACK)
+  end)
   it("rejects invalid ids and indexes before queueing anything", function()
     for _, change in ipairs({ { index = 0 }, { index = 1.5 }, { track_uri = "/etc/passwd" }, { track_uri = "spotify:album:" .. string.rep("2", 22) } }) do
       local ev = { playlist = "user_1", index = 1, track_uri = TRACK }; for k, v in pairs(change) do ev[k] = v end

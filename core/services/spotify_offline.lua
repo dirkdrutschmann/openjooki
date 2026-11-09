@@ -29,7 +29,7 @@ local function playlist(doc, id)
 end
 local function write_queue(doc, pub)
   return { kind = "files.write", path = offline.paths(doc).queue, doc = { account_id = pub.account_id, items = pub.queue or {}, jobs = pub.jobs or {},
-    active = busy(pub) and { playlist = pub.download.playlist, uri = pub.download.uri } or nil, paused = pub.queue_paused }, version = 1 }
+    active = busy(pub) and { playlist = pub.download.playlist, uri = pub.download.uri, index = pub.download.track_index, track_uri = pub.download.track_uri } or nil, paused = pub.queue_paused }, version = 1 }
 end
 local function restore_queue(doc, pub, int)
   if not int.queue_loaded or not pub.catalog_loaded then return end

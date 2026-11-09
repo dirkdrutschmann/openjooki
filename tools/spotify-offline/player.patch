@@ -395,7 +395,7 @@ index bc21f41..a98e781 100644
 +
 diff --git a/spotify_player/src/downloads/managed.rs b/spotify_player/src/downloads/managed.rs
 new file mode 100644
-index 0000000..d976f07
+index 0000000..528c372
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed.rs
 @@ -0,0 +1,2229 @@
@@ -1635,7 +1635,7 @@ index 0000000..d976f07
 +                "ended"
 +            }
 +            .into(),
-+            index: final_state.current.unwrap_or(initial),
++            index: positions[final_state.current.unwrap_or(initial)],
 +            position_ms: final_state.position_ms,
 +            ack,
 +            error: if result.is_err() {
