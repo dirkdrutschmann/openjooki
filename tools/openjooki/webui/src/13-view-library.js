@@ -5,14 +5,14 @@
     return ids.sort(function (a, b) { var ta = S.db.tracks[a], tb = S.db.tracks[b]; return c.compare(ta.album || '', tb.album || '') || c.compare(trackTitle(a), trackTitle(b)); });
   }
   // a track row with its checkbox (the library, "From the library"): tapping the row toggles it too.
-  // o: checked, set(v), title, track (data-track), inner (under the title), after (end of the row)
+  // o: checked, set(v), title, track (data-track), sub, inner (under the title), after (end of the row)
   function trackCheckRow(k, o) {
     var tr = S.db.tracks[k];
     var check;
     function set(v) { o.checked = !!v; check.checked = o.checked; o.set(o.checked); }
     return h('li', { class: 'clickable', 'data-track': o.track, onclick: function (e) { if (e.target.tagName !== 'INPUT') set(!o.checked); } },
       check = h('input', { type: 'checkbox', class: 'check', checked: o.checked, 'aria-label': trackTitle(k), onchange: function (e) { set(e.target.checked); } }),
-      h('div', { class: 'grow' }, h('div', { class: 'title ellipsis' }, o.title), h('div', { class: 'sub ellipsis' }, trackSub(tr)), o.inner),
+      h('div', { class: 'grow' }, h('div', { class: 'title ellipsis' }, o.title), h('div', { class: 'sub ellipsis' }, o.sub === undefined ? trackSub(tr) : o.sub), o.inner),
       o.after);
   }
   function libraryPickerModal(p) {
@@ -73,13 +73,29 @@
     tab = tab === 'unused' ? 'unused' : 'all';
     var un = unusedIds();
     var unSet = {}; un.forEach(function (x) { unSet[x] = true; });
-    var where = {};
-    userPlaylists().forEach(function (p) { arr(p.tracks).forEach(function (x) { (where[x] = where[x] || []).push(p.title || '—'); }); });
+    var where = {}, playlists = userPlaylists();
+    playlists.forEach(function (p) { arr(p.tracks).forEach(function (x) { (where[x] = where[x] || []).push(p.title || '—'); }); });
     var all = filterSortTracks(Object.keys(S.db.tracks).filter(function (k) { return tab === 'all' || unSet[k]; }), ui.search);
+    var grouped = {}, books = playlists.filter(function (p) { return p.audiobook; }).map(function (p) {
+      var tracks = arr(p.tracks).filter(function (k) { return all.indexOf(k) >= 0 && !grouped[k] && (grouped[k] = true); });
+      return { id: p.id, title: p.title || '—', tracks: tracks };
+    }).filter(function (book) { return book.tracks.length; });
+    var loose = all.filter(function (k) { return !grouped[k]; });
     Object.keys(ui.sel).forEach(function (k) { if (all.indexOf(k) < 0) delete ui.sel[k]; });
     var chosen = all.filter(function (k) { return ui.sel[k]; });
     var nAll = Object.keys(S.db.tracks).length;
     var allChosen = all.length > 0 && chosen.length === all.length;
+    function bookFolder(book) {
+      return h('details', { class: 'lib-folder', open: !!ui.libOpen[book.id], ontoggle: function (e) { ui.libOpen[book.id] = e.target.open; } },
+        h('summary', { class: 'lib-folder-head' },
+          h('span', { class: 'lib-folder-icon' }, icon('folder')),
+          h('span', { class: 'lib-folder-title ellipsis' }, book.title),
+          h('span', { class: 'lib-folder-count small muted' }, t('n_tracks', book.tracks.length))),
+        h('ul', { class: 'list lib-folder-tracks' }, book.tracks.map(function (k) {
+          return trackCheckRow(k, { track: k, checked: !!ui.sel[k], set: function (v) { ui.sel[k] = v; render(); },
+            title: trackTitle(k), sub: trackSub(S.db.tracks[k], true) });
+        })));
+    }
     return [
       h('div', { class: 'tabs', role: 'tablist' },
         h('button', { class: tab === 'all' ? 'on' : '', role: 'tab', 'aria-selected': String(tab === 'all'), onclick: function () { go('#/library'); } }, t('all') + ' (' + nAll + ')'),
@@ -92,12 +108,12 @@
       uploadsBlock(null),
       h('div', { class: 'search' }, icon('search'), h('input', { class: 'input', 'data-k': 'libsearch', placeholder: t('search'), value: ui.search,
         oninput: function (e) { ui.search = e.target.value; render(); } })),
-      all.length ? h('ul', { class: 'card list' }, all.map(function (k) {
+      all.length ? h('div', { class: 'card lib-tree' }, books.map(bookFolder), loose.length ? h('ul', { class: 'list lib-loose' }, loose.map(function (k) {
         var tr = S.db.tracks[k];
         var w = where[k];
         return trackCheckRow(k, { track: k, checked: !!ui.sel[k], set: function (v) { ui.sel[k] = v; render(); }, title: (tr.isUrl ? '📻 ' : '') + trackTitle(k),
           inner: h('div', { class: 'sub ellipsis' }, w ? t('in_playlists') + w.join(', ') : t('in_none')) });
-      })) : h('div', { class: 'card empty' }, tab === 'unused' ? t('unused_empty') : t('library_empty')),
+      })) : null) : h('div', { class: 'card empty' }, tab === 'unused' ? t('unused_empty') : t('library_empty')),
       chosen.length ? h('div', { class: 'card selbar' },
         h('span', { class: 'grow small' }, t('selected', chosen.length)),
         h('button', { class: 'btn primary', onclick: function () { addToPlaylistModal(chosen); } }, t('add_to')),

@@ -55,12 +55,12 @@
   }
   function userPlaylists() { return index().userPlaylists; }
   function trackTitle(id) { var tr = S.db.tracks[id]; if (!tr) return '?'; return cleanTitle(tr.title || tr.userFilename || id); }
-  function trackSub(tr) {
+  function trackSub(tr, omitAlbum) {
     if (!tr) return '';
     if (tr.isUrl) return t('radio') + ' · ' + (tr.filename || '');
     var bits = [];
     if (tr.artist && tr.artist !== 'unknown') bits.push(tr.artist);
-    if (tr.album && tr.album !== 'unknown') bits.push(tr.album);
+    if (!omitAlbum && tr.album && tr.album !== 'unknown') bits.push(tr.album);
     if (tr.duration) bits.push(fmtTime(tr.duration));
     return bits.join(' · ');
   }
