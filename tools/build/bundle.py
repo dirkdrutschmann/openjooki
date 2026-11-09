@@ -165,8 +165,8 @@ def main():
         "local f = assert(loadstring(src, '=core'))\n"
         "src = nil; collectgarbage('collect')\n"
         "return f()\n")
-    open(os.path.join(a.out, "core.min.lua"), "w", encoding="utf-8", newline="\n").write(stripped)
-    core_bytes = stripped.encode("latin-1", "replace")   # the exact bytes shipped as /jooki/lib/core.lua
+    core_bytes = stripped.encode("utf-8")   # the exact bytes shipped as /jooki/lib/core.lua
+    open(os.path.join(a.out, "core.min.lua"), "wb").write(core_bytes)
     # player.lib is the loader; it carries the core's byte length so a stale core is refused
     loader = loader_src(a.version, len(core_bytes))
     lib = encode(loader)
