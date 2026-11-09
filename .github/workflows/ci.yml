@@ -35,7 +35,7 @@ jobs:
         run: python3 tools/openjooki/webui/build.py --check
       - name: Translations (keys, placeholders, German detection, characters, picture search)
         run: node tools/openjooki/tests/test_i18n.js
-      - name: The page parses and stays small (app.js <= 320 KiB, app.css <= 64 KiB)
+      - name: The page parses and stays small (app.js <= 336 KiB, app.css <= 64 KiB)
         run: |
           node --check tools/openjooki/webui/app.js && node --check tools/openjooki/webui/mp3-worker.js && node --check docs/mp3-worker.js
           for f in tools/openjooki/webui/src/*.js; do node --check "$f" || exit 1; done
@@ -44,7 +44,7 @@ jobs:
           node --check /tmp/sdcard-page.js
           python3 - <<'EOF'
           import os, sys
-          caps = {"tools/openjooki/webui/app.js": 320, "tools/openjooki/webui/app.css": 64}
+          caps = {"tools/openjooki/webui/app.js": 336, "tools/openjooki/webui/app.css": 64}
           bad = [(p, os.path.getsize(p) // 1024) for p, k in caps.items() if os.path.getsize(p) > k * 1024]
           print("sizes:", {p: "%d KiB" % (os.path.getsize(p) // 1024) for p in caps})
           sys.exit("over the cap: %r" % bad if bad else 0)
@@ -134,6 +134,8 @@ jobs:
         run: sudo -E python3 test_device_controls.py
       - name: Scheduled and permanent device darkness
         run: sudo -E python3 test_lights_off.py
+      - name: Individual Spotify cache, persisted titles, covers and card layout
+        run: sudo -E python3 test_spotify_offline_items_ui.py
       - name: Spotify offline UI and outgoing commands
         run: sudo -E python3 test_spotify_offline_ui.py
       - name: Connected startup light cue and immediate heart presses

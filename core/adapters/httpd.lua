@@ -46,6 +46,7 @@ function httpd.new(opts)
     name_fn = opts.name,                  -- function() -> the Jooki's own name (rebinding guard)
     log = opts.log or function() end,
     on_upload = opts.on_upload,
+    offline_file = opts.offline_file,
     extra = opts.extra,                   -- function(method, path, headers, body) -> status, ctype, body, header lines | nil
     server = nil, conns = {}, socket_lib = nil,
   }, httpd)
@@ -157,10 +158,10 @@ local function respond_text(c, status, body, ctype, extra)
   c.phase = "resp"
 end
 
-local function respond_file(c, path, cache)
+local function respond_file(c, path, cache, content_type)
   local sz = file_size(path)
   if not sz then return respond_text(c, "404 Not Found", "not found", "text/plain") end
-  local ct = MIME[ext_of(path)] or "application/octet-stream"
+  local ct = content_type or MIME[ext_of(path)] or "application/octet-stream"
   c.out = head("200 OK", ct, sz, nil, cache)
   c.out_off = 1
   if c.method == "HEAD" then c.out_file = nil else c.out_file = io.open(path, "rb") end
@@ -175,6 +176,13 @@ function httpd:route(c)
   end
   if self.extra and c.path:gsub("%?.*$", ""):sub(1, 6) == "/upnp/" then return self:begin_extra(c) end
   if c.method == "GET" or c.method == "HEAD" then
+    local requested = c.path:gsub("%?.*$", "")
+    if requested:sub(1, 17) == "/offline-artwork/" then
+      local path, mime
+      if self.offline_file then path, mime = self.offline_file(requested) end
+      if not path then return respond_text(c, "404 Not Found", "not found", "text/plain") end
+      return respond_file(c, path, nil, mime)
+    end
     local path = safe_path(self.docroot, c.path)
     if not path then return respond_text(c, "400 Bad Request", "bad path", "text/plain") end
     local cache = c.path:sub(1, #CACHED_PREFIX) == CACHED_PREFIX and ext_of(path) == "webp" and CACHED or nil

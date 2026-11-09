@@ -395,10 +395,12 @@ index bc21f41..a98e781 100644
 +
 diff --git a/spotify_player/src/downloads/managed.rs b/spotify_player/src/downloads/managed.rs
 new file mode 100644
-index 0000000..f5b073d
+index 0000000..127cb7f
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed.rs
-@@ -0,0 +1,1996 @@
+@@ -0,0 +1,2228 @@
++#[path = "managed_items.rs"]
++mod items;
 +use std::{
 +    collections::{BTreeMap, HashSet},
 +    fs::{self, File, OpenOptions},
@@ -464,10 +466,22 @@ index 0000000..f5b073d
 +                ),
 +        )
 +        .subcommand(Command::new("sync").arg(Arg::new("uri").required(true)))
++        .subcommand(
++            Command::new("cache-track")
++                .arg(Arg::new("uri").required(true))
++                .arg(Arg::new("track-uri").long("track-uri").required(true))
++                .arg(
++                    Arg::new("index")
++                        .long("index")
++                        .required(true)
++                        .value_parser(clap::value_parser!(usize)),
++                ),
++        )
 +        .subcommand(Command::new("remove").arg(Arg::new("uri").required(true)))
 +        .subcommand(Command::new("forget"))
 +        .subcommand(
 +            Command::new("play")
++                .arg(Arg::new("track-uri").long("track-uri"))
 +                .arg(Arg::new("uri").required(true))
 +                .arg(Arg::new("session").long("session").required(true))
 +                .arg(Arg::new("control").long("control").required(true))
@@ -592,6 +606,8 @@ index 0000000..f5b073d
 +    uri: String,
 +    phase: String,
 +    completed: usize,
++    #[serde(default)]
++    skipped: usize,
 +    total: usize,
 +    bytes: u64,
 +    tracks: Vec<Track>,
@@ -834,17 +850,11 @@ index 0000000..f5b073d
 +fn select_complete(library: &Library, uri: &str, entry: &Entry) -> Result<Vec<Download>> {
 +    ensure!(!entry.tracks.is_empty(), "empty_playlist");
 +    let tracks = library.select(Some(uri))?;
++    let expected: Vec<_> = entry.tracks.iter().filter(|t| t.bytes > 0).collect();
 +    ensure!(
-+        tracks.len() == entry.tracks.len()
-+            && tracks
-+                .iter()
-+                .zip(&entry.tracks)
-+                .all(|(a, b)| a.uri == b.uri),
++        tracks.len() == expected.len() && tracks.iter().zip(&expected).all(|(a, b)| a.uri == b.uri),
 +        "incomplete_snapshot"
 +    );
-+    for track in &tracks {
-+        library.verify_cover(track)?;
-+    }
 +    Ok(tracks)
 +}
 +fn publish_catalog(paths: &Paths, error: Option<&str>) -> Result<()> {
@@ -881,35 +891,33 @@ index 0000000..f5b073d
 +            );
 +        }
 +    }
-+    write_public(
-+        &paths.catalog,
-+        &Catalog {
-+            version: VERSION,
-+            account_name: auth::AuthConfig::new(config::get_config())
-+                .ok()
-+                .and_then(|a| a.cache.credentials())
-+                .and_then(|c| c.username)
-+                .or_else(|| account_info()["username"].as_str().map(str::to_owned)),
-+            premium_verified: verified_account(paths, id.as_deref()),
-+            metadata_ready: metadata_ready(paths, id.as_deref()),
-+            auth_request: account_info()["request"].as_str().map(str::to_owned),
-+            reserve_bytes: if paths.quota == 0 {
-+                AUTO_RESERVE
-+            } else {
-+                RESERVE
-+            },
-+            account_ready: verified_account(paths, id.as_deref()),
-+            account_id: id,
-+            used_bytes: used_bytes(&paths.root).unwrap_or(0),
-+            free_bytes: free_bytes(&paths.root).unwrap_or(0),
-+            quota_bytes: effective_quota(paths).unwrap_or(0),
-+            playlists,
-+            error: catalog_error,
++    let value = serde_json::to_value(Catalog {
++        version: VERSION,
++        account_name: auth::AuthConfig::new(config::get_config())
++            .ok()
++            .and_then(|a| a.cache.credentials())
++            .and_then(|c| c.username)
++            .or_else(|| account_info()["username"].as_str().map(str::to_owned)),
++        premium_verified: verified_account(paths, id.as_deref()),
++        metadata_ready: metadata_ready(paths, id.as_deref()),
++        auth_request: account_info()["request"].as_str().map(str::to_owned),
++        reserve_bytes: if paths.quota == 0 {
++            AUTO_RESERVE
++        } else {
++            RESERVE
 +        },
-+    )
++        account_ready: verified_account(paths, id.as_deref()),
++        account_id: id,
++        used_bytes: used_bytes(&paths.root).unwrap_or(0),
++        free_bytes: free_bytes(&paths.root).unwrap_or(0),
++        quota_bytes: effective_quota(paths).unwrap_or(0),
++        playlists,
++        error: catalog_error,
++    })?;
++    items::write_catalog(paths, value)
 +}
 +fn publish_job(paths: &Paths, job: &Job) -> Result<()> {
-+    write_public(&paths.job, job)?;
++    items::write_job(paths, job, None)?;
 +    // On a full card the RAM status still reports the error and the old index survives.
 +    let _ = write_json(
 +        &paths.root.join("last-job.json"),
@@ -1160,6 +1168,7 @@ index 0000000..f5b073d
 +        uri: uri.into(),
 +        phase: "resolving".into(),
 +        completed: 0,
++        skipped: 0,
 +        total: 0,
 +        bytes: 0,
 +        tracks: Vec::new(),
@@ -1183,10 +1192,6 @@ index 0000000..f5b073d
 +            .context("Spotify connection timeout")??;
 +        let listing = super::native::listing(&session, uri).await?;
 +        ensure!(!listing.uris.is_empty(), "empty_playlist");
-+        ensure!(
-+            listing.uris.iter().all(|s| s.starts_with("spotify:track:")),
-+            "unsupported_item"
-+        );
 +        let expected = listing.uris.clone();
 +        let mut completed_tracks = Vec::with_capacity(expected.len());
 +        job.total = expected.len();
@@ -1196,10 +1201,52 @@ index 0000000..f5b073d
 +            for (index, track_uri) in expected.iter().enumerate() {
 +                ensure!(account_id()?.as_deref() == Some(&id), "account_changed");
 +                if !library.contains_valid(track_uri) {
-+                    super::download_checked(&session, &library, track_uri, |bytes| {
-+                        check_capacity(paths, bytes)
-+                    })
-+                    .await?;
++                    let download = if track_uri.starts_with("spotify:track:") {
++                        super::download_checked(&session, &library, track_uri, |bytes| {
++                            check_capacity(paths, bytes)
++                        })
++                        .await
++                    } else {
++                        Err(anyhow::anyhow!("unsupported_item"))
++                    };
++                    if let Err(error) = download {
++                        let code = error_code(&error);
++                        if matches!(
++                            code,
++                            "authentication_required"
++                                | "storage_full"
++                                | "rate_limited"
++                                | "network_timeout"
++                        ) || format!("{error:#}").contains("account_changed")
++                        {
++                            return Err(error);
++                        }
++                        let metadata = super::native::song(&session, track_uri).await.ok();
++                        let skipped = Track {
++                            uri: track_uri.clone(),
++                            name: metadata
++                                .as_ref()
++                                .map_or_else(|| track_uri.clone(), |m| m.name.clone()),
++                            artists: metadata
++                                .as_ref()
++                                .map(|m| m.artists.clone())
++                                .unwrap_or_default(),
++                            album: metadata
++                                .as_ref()
++                                .map(|m| m.album.clone())
++                                .unwrap_or_default(),
++                            duration_ms: metadata.as_ref().map_or(0, |m| m.duration_ms),
++                            bytes: 0,
++                        };
++                        if index < super::native::PAGE_SIZE {
++                            job.tracks.push(skipped.clone());
++                        }
++                        completed_tracks.push(skipped);
++                        job.skipped += 1;
++                        job.completed = index + 1;
++                        publish_job(paths, &job)?;
++                        continue;
++                    }
 +                }
 +                let saved = library.track(track_uri)?;
 +                if !saved
@@ -1207,9 +1254,8 @@ index 0000000..f5b073d
 +                    .as_deref()
 +                    .is_none_or(|url| library.cover_is_valid(url))
 +                {
-+                    super::download_cover(&library, saved.cover_url.as_deref()).await?;
++                    let _ = super::download_cover(&library, saved.cover_url.as_deref()).await;
 +                }
-+                library.verify_cover(&saved)?;
 +                job.bytes += saved.bytes;
 +                let metadata = Track::from(saved);
 +                if index < super::native::PAGE_SIZE {
@@ -1226,7 +1272,7 @@ index 0000000..f5b073d
 +        downloaded?;
 +        job.phase = "verifying".into();
 +        publish_job(paths, &job)?;
-+        for track in &completed_tracks {
++        for track in completed_tracks.iter().filter(|t| t.bytes > 0) {
 +            ensure!(library.contains_valid(&track.uri), "incomplete_snapshot");
 +        }
 +        let after = super::native::listing(&session, uri).await?;
@@ -1235,8 +1281,17 @@ index 0000000..f5b073d
 +            listing.revision == after.revision && expected == after.uris,
 +            "playlist_changed"
 +        );
-+        prune_stage(&library, &expected)?;
-+        library.save_collection(uri, &expected)?;
++        let playable: Vec<_> = completed_tracks
++            .iter()
++            .filter(|t| t.bytes > 0)
++            .map(|t| t.uri.clone())
++            .collect();
++        ensure!(
++            !playable.is_empty(),
++            "track_unavailable: no downloadable titles"
++        );
++        prune_stage(&library, &playable)?;
++        library.save_collection(uri, &playable)?;
 +        commit(
 +            paths,
 +            &id,
@@ -1379,15 +1434,30 @@ index 0000000..f5b073d
 +    );
 +    let id = account_id()?.context("authentication_required")?;
 +    let _lock = take_playback(paths)?;
-+    let index = load_index(paths, &id)?;
-+    let entry = index.playlists.get(uri).context("no_complete_snapshot")?;
-+    let library = entry_library(paths, &id, entry)?;
-+    let tracks = select_complete(&library, uri, entry)?;
-+    let mut initial = *args
++    let requested = *args
 +        .get_one::<usize>("index")
 +        .context("missing track index")?;
++    let single = args.get_one::<String>("track-uri");
++    let (library, tracks, directory, positions) = if let Some(track_uri) = single {
++        let (library, tracks, directory) =
++            items::select_single(paths, &id, uri, requested, track_uri)?;
++        (library, tracks, directory, vec![requested])
++    } else {
++        let index = load_index(paths, &id)?;
++        let entry = index.playlists.get(uri).context("no_complete_snapshot")?;
++        let library = entry_library(paths, &id, entry)?;
++        let tracks = select_complete(&library, uri, entry)?;
++        let positions: Vec<_> = entry
++            .tracks
++            .iter()
++            .enumerate()
++            .filter_map(|(i, t)| (t.bytes > 0).then_some(i))
++            .collect();
++        (library, tracks, entry.directory.clone(), positions)
++    };
++    let mut initial = positions.iter().position(|i| *i >= requested).unwrap_or(0);
 +    let mut seek_ms = 0;
-+    if args.get_flag("resume") {
++    if single.is_none() && args.get_flag("resume") {
 +        if let Ok(saved) = read_json::<Resume>(&resume_path(paths, &id, uri)) {
 +            if saved.account_id == id && saved.uri == uri {
 +                if let Some(i) = tracks.iter().position(|t| t.uri == saved.track_uri) {
@@ -1405,7 +1475,7 @@ index 0000000..f5b073d
 +        session: session.clone(),
 +        uri: uri.into(),
 +        account_id: id,
-+        directory: entry.directory.clone(),
++        directory,
 +        control: args
 +            .get_one::<String>("control")
 +            .context("missing control path")?
@@ -1489,7 +1559,9 @@ index 0000000..f5b073d
 +            let state = status.lock().clone();
 +            started |= state.current.is_some();
 +            if last_publish.elapsed() >= Duration::from_millis(500) {
-+                write_json(
++                items::write_playback(
++                    paths,
++                    &library,
 +                    &record.status,
 +                    &Playback {
 +                        version: VERSION,
@@ -1512,7 +1584,7 @@ index 0000000..f5b073d
 +                            "starting"
 +                        }
 +                        .into(),
-+                        index: state.current.unwrap_or(initial),
++                        index: positions[state.current.unwrap_or(initial)],
 +                        position_ms: state.position_ms,
 +                        ack,
 +                        error: state.error.as_ref().map(|_| "audio_error".into()),
@@ -1831,7 +1903,7 @@ index 0000000..f5b073d
 +    let offset = *args.get_one::<usize>("offset").context("missing offset")?;
 +    let mut result = Preview {
 +        version: VERSION,
-+        metadata_version: 2,
++        metadata_version: 3,
 +        account_id: id.clone(),
 +        request: paths.request.clone(),
 +        uri: uri.into(),
@@ -1842,7 +1914,7 @@ index 0000000..f5b073d
 +        tracks: Vec::new(),
 +        error: None,
 +    };
-+    write_public(output, &result)?;
++    items::write_preview(paths, output, &result)?;
 +    let cache = paths
 +        .account(&id)
 +        .join("previews")
@@ -1864,10 +1936,14 @@ index 0000000..f5b073d
 +                    album: t.album.clone(),
 +                    duration_ms: t.duration_ms,
 +                    bytes: t.bytes,
-+                    problem: None,
++                    image: None,
++                    problem: (t.bytes == 0).then(|| "track_unavailable".into()),
 +                })
 +                .collect();
-+            return Ok(());
++            items::write_preview(paths, output, &result)?;
++            if now().saturating_sub(entry.synced_at) < 300 {
++                return Ok(());
++            }
 +        }
 +        if let Ok(saved) = read_json::<Preview>(&cache) {
 +            if saved.account_id == id && saved.phase == "complete" {
@@ -1879,11 +1955,11 @@ index 0000000..f5b073d
 +                    .ok()
 +                    .and_then(|t| t.elapsed().ok())
 +                    .is_some_and(|age| age < Duration::from_secs(300))
-+                    && saved.metadata_version == 2;
++                    && saved.metadata_version == 3;
 +                if fresh {
 +                    return Ok(());
 +                }
-+                write_public(output, &result)?;
++                items::write_preview(paths, output, &result)?;
 +            }
 +        }
 +        if !verified_account(paths, Some(&id)) {
@@ -1904,6 +1980,7 @@ index 0000000..f5b073d
 +                        album: t.album.name,
 +                        duration_ms: t.duration.num_milliseconds().max(0) as u32,
 +                        bytes: 0,
++                        image: None,
 +                        problem: None,
 +                    },
 +                    Some(rspotify::model::PlayableItem::Episode(e)) => super::native::Song {
@@ -1913,6 +1990,7 @@ index 0000000..f5b073d
 +                        album: e.show.name,
 +                        duration_ms: e.duration.num_milliseconds().max(0) as u32,
 +                        bytes: 0,
++                        image: None,
 +                        problem: Some("unsupported_item".into()),
 +                    },
 +                    _ => super::native::Song {
@@ -1922,6 +2000,7 @@ index 0000000..f5b073d
 +                        album: String::new(),
 +                        duration_ms: 0,
 +                        bytes: 0,
++                        image: None,
 +                        problem: Some("metadata_unavailable".into()),
 +                    },
 +                })
@@ -1951,11 +2030,12 @@ index 0000000..f5b073d
 +                    album: String::new(),
 +                    duration_ms: 0,
 +                    bytes: 0,
++                    image: None,
 +                    problem: Some("metadata_unavailable".into()),
 +                }),
 +            }
 +            if result.tracks.len().is_multiple_of(5) {
-+                write_public(output, &result)?;
++                items::write_preview(paths, output, &result)?;
 +            }
 +        }
 +        session.shutdown();
@@ -1967,7 +2047,7 @@ index 0000000..f5b073d
 +    if attempt.is_ok() {
 +        let _ = write_json(&cache, &result);
 +    }
-+    write_public(output, &result)?;
++    items::write_preview(paths, output, &result)?;
 +    attempt
 +}
 +
@@ -2054,6 +2134,11 @@ index 0000000..f5b073d
 +        }
 +        "inspect" => tokio::runtime::Runtime::new()?
 +            .block_on(inspect_native(uri.as_deref().context("missing playlist")?)),
++        "cache-track" => tokio::runtime::Runtime::new()?.block_on(items::cache_track(
++            &paths,
++            sub,
++            uri.as_deref().context("missing playlist")?,
++        )),
 +        "sync" => tokio::runtime::Runtime::new()?.block_on(synchronize(
 +            &paths,
 +            uri.as_deref().context("missing playlist")?,
@@ -2086,6 +2171,7 @@ index 0000000..f5b073d
 +                        uri: uri.clone(),
 +                        phase: "error".into(),
 +                        completed: 0,
++                        skipped: 0,
 +                        total: 0,
 +                        bytes: 0,
 +                        tracks: Vec::new(),
@@ -2394,9 +2480,483 @@ index 0000000..f5b073d
 +        assert!(public.get("directory").is_none());
 +        assert!(public.get("uri").is_some());
 +    }
++    #[test]
++    fn declared_skips_keep_the_remaining_titles_in_order_and_missing_audio_still_fails() {
++        let root = tempfile::tempdir().unwrap();
++        let p = paths(root.path());
++        let lib = stage(&p);
++        let a = fixture(&lib, "1111111111111111111111", "First");
++        let b = fixture(&lib, "3333333333333333333333", "Third");
++        let skipped = Track {
++            uri: "spotify:track:2222222222222222222222".into(),
++            name: "Unavailable".into(),
++            artists: vec![],
++            album: String::new(),
++            duration_ms: 0,
++            bytes: 0,
++        };
++        publish(&p, vec![a.clone(), skipped, b.clone()]).unwrap();
++        let index = load_index(&p, ACCOUNT).unwrap();
++        let entry = &index.playlists[URI];
++        let library = entry_library(&p, ACCOUNT, entry).unwrap();
++        let selected = select_complete(&library, URI, entry).unwrap();
++        assert_eq!(
++            selected.iter().map(|t| t.uri.as_str()).collect::<Vec<_>>(),
++            vec![a.uri.as_str(), b.uri.as_str()]
++        );
++        library.remove(&a.uri).unwrap();
++        assert!(select_complete(&library, URI, entry).is_err());
++    }
++
++    #[test]
++    fn partial_preview_reports_only_real_cached_titles_and_can_select_the_exact_position() {
++        let root = tempfile::tempdir().unwrap();
++        let p = paths(root.path());
++        let lib = stage(&p);
++        let saved = fixture(&lib, "2222222222222222222222", "Second");
++        let first = "spotify:track:1111111111111111111111".to_owned();
++        write_json(
++            &lib.root().join("selection.json"),
++            &serde_json::json!({"uri":URI,"name":"Songs","uris":[first,saved.uri]}),
++        )
++        .unwrap();
++        let output = root.path().join("preview.json");
++        let mut preview = Preview {
++            version: VERSION,
++            metadata_version: 3,
++            account_id: ACCOUNT.into(),
++            request: "1".into(),
++            uri: URI.into(),
++            phase: "complete".into(),
++            offset: 0,
++            total: 2,
++            name: "Songs".into(),
++            tracks: vec![],
++            error: None,
++        };
++        for uri in [&first, &saved.uri] {
++            preview.tracks.push(super::super::native::Song {
++                uri: uri.clone(),
++                name: uri.clone(),
++                artists: vec![],
++                album: String::new(),
++                duration_ms: 120,
++                bytes: 0,
++                image: None,
++                problem: None,
++            });
++        }
++        items::write_preview(&p, &output, &preview).unwrap();
++        let public: serde_json::Value = read_json(&output).unwrap();
++        assert_eq!(public["tracks"][0]["cached"], false);
++        assert_eq!(public["tracks"][1]["cached"], true);
++        let (_, tracks, _) = items::select_single(&p, ACCOUNT, URI, 1, &saved.uri).unwrap();
++        assert_eq!(tracks.len(), 1);
++        assert_eq!(tracks[0].uri, saved.uri);
++        assert!(items::select_single(&p, ACCOUNT, URI, 0, &saved.uri).is_err());
++        assert!(items::select_single(&p, "another-account", URI, 1, &saved.uri).is_err());
++        assert!(!public.to_string().contains("key"));
++    }
++
++    #[test]
++    fn a_truncated_atomic_download_is_not_advertised_as_cached() {
++        let root = tempfile::tempdir().unwrap();
++        let p = paths(root.path());
++        let lib = stage(&p);
++        let saved = fixture(&lib, "2222222222222222222222", "Second");
++        assert!(lib.cached_track(&saved.uri).is_some());
++        let path = lib.root().join("2222222222222222222222.spdl");
++        let file = OpenOptions::new().write(true).open(path).unwrap();
++        file.set_len(file.metadata().unwrap().len() - 1).unwrap();
++        assert!(lib.cached_track(&saved.uri).is_none());
++    }
++    #[test]
++    fn downloaded_covers_are_local_images_and_public_rows_never_contain_storage_paths() {
++        let root = tempfile::tempdir().unwrap();
++        let p = paths(root.path());
++        let lib = stage(&p);
++        let metadata = fixture(&lib, "2222222222222222222222", "Second");
++        let mut saved = lib.track(&metadata.uri).unwrap();
++        let url = "https://i.scdn.co/image/fixture";
++        saved.cover_url = Some(url.into());
++        let mut plain = vec![0; 167];
++        plain.extend_from_slice(include_bytes!("testdata/silence.ogg"));
++        let mut encrypted = Vec::new();
++        AudioDecrypt::new(Some(AudioKey([42; 16])), plain.as_slice())
++            .read_to_end(&mut encrypted)
++            .unwrap();
++        lib.save(saved, encrypted.as_slice()).unwrap();
++        const PNG: [u8; 70] = [
++            137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1,
++            8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 248, 223,
++            193, 240, 31, 0, 6, 152, 2, 135, 125, 181, 147, 153, 0, 0, 0, 0, 73, 69, 78, 68, 174,
++            66, 96, 130,
++        ];
++        lib.save_cover(url, &PNG).unwrap();
++        let output = root.path().join("preview.json");
++        let preview = Preview {
++            version: VERSION,
++            metadata_version: 3,
++            account_id: ACCOUNT.into(),
++            request: "1".into(),
++            uri: URI.into(),
++            phase: "complete".into(),
++            offset: 0,
++            total: 1,
++            name: "Songs".into(),
++            tracks: vec![super::super::native::Song {
++                uri: metadata.uri,
++                name: "Second".into(),
++                artists: vec![],
++                album: String::new(),
++                duration_ms: 120,
++                bytes: 0,
++                image: None,
++                problem: None,
++            }],
++            error: None,
++        };
++        items::write_preview(&p, &output, &preview).unwrap();
++        let value: serde_json::Value = read_json(&output).unwrap();
++        let image = value["tracks"][0]["image"].as_str().unwrap();
++        assert!(image.starts_with("/offline-artwork/"));
++        let asset = &value["artwork"][image.trim_start_matches("/offline-artwork/")];
++        assert_eq!(asset["mime"], "image/png");
++        assert_eq!(fs::read(asset["path"].as_str().unwrap()).unwrap(), PNG);
++        assert!(!value["tracks"].to_string().contains("path"));
++        assert!(!value["tracks"].to_string().contains("key"));
++    }
++}
+diff --git a/spotify_player/src/downloads/managed_items.rs b/spotify_player/src/downloads/managed_items.rs
+new file mode 100644
+index 0000000..27b08be
+--- /dev/null
++++ b/spotify_player/src/downloads/managed_items.rs
+@@ -0,0 +1,322 @@
++//! Public cache state and covers, plus explicit single-title downloads/playback.
++//! Audio, keys and filesystem paths stay in the private native store.
++use super::{
++    account_id, auth, bail, check_capacity, config, ensure, entry_library, error_code, fs, hash,
++    load_index, publish_catalog, read_json, reuse, verified_account, write_json, write_public,
++    ArgMatches, BTreeMap, Context, Deserialize, Download, Duration, File, Job, Library, Lock, Path,
++    Paths, Playback, Preview, Process, Result, Serialize, Track, VERSION,
++};
++use serde_json::{json, Value};
++use std::io::Read;
++
++#[derive(Serialize, Deserialize)]
++struct Selection {
++    uri: String,
++    name: String,
++    uris: Vec<String>,
++}
++
++fn libraries(paths: &Paths, id: &str, uri: &str) -> Vec<(Library, String)> {
++    let mut all = Vec::new();
++    if let Ok(index) = load_index(paths, id) {
++        if let Some(entry) = index.playlists.get(uri) {
++            if let Ok(library) = entry_library(paths, id, entry) {
++                all.push((library, entry.directory.clone()));
++            }
++        }
++    }
++    all.push((Library::new(paths.pending(id, uri)), String::new()));
++    all
++}
++
++fn cover(
++    library: &Library,
++    track: &Download,
++    artwork: &mut BTreeMap<String, Value>,
++) -> Option<String> {
++    let path = library.cover_path(track.cover_url.as_ref()?);
++    let mut header = [0; 12];
++    let mut file = File::open(&path).ok()?;
++    let size = file.metadata().ok()?.len();
++    if size == 0 || size > 5 * 1024 * 1024 {
++        return None;
++    }
++    let n = file.read(&mut header).ok()?;
++    let mime = if header.starts_with(&[0xff, 0xd8, 0xff]) {
++        "image/jpeg"
++    } else if header.starts_with(b"\x89PNG\r\n\x1a\n") {
++        "image/png"
++    } else if header.starts_with(b"GIF8") {
++        "image/gif"
++    } else if n == 12 && &header[..4] == b"RIFF" && &header[8..] == b"WEBP" {
++        "image/webp"
++    } else {
++        return None;
++    };
++    let key = hash(path.to_string_lossy().as_bytes());
++    artwork.insert(key.clone(), json!({"path":path,"mime":mime}));
++    Some(format!("/offline-artwork/{key}"))
++}
++
++fn decorate(
++    tracks: &mut Value,
++    libraries: &[(Library, String)],
++    artwork: &mut BTreeMap<String, Value>,
++) {
++    let Some(tracks) = tracks.as_array_mut() else {
++        return;
++    };
++    for item in tracks {
++        let uri = item["uri"].as_str().unwrap_or_default().to_owned();
++        item["cached"] = false.into();
++        for (library, _) in libraries {
++            if let Some(saved) = library.cached_track(&uri) {
++                item["cached"] = true.into();
++                item["bytes"] = saved.bytes.into();
++                item["problem"] = Value::Null;
++                if let Some(image) = cover(library, &saved, artwork) {
++                    item["image"] = image.into();
++                }
++                break;
++            }
++        }
++    }
++}
++
++pub(super) fn write_catalog(paths: &Paths, mut value: Value) -> Result<()> {
++    let mut artwork = BTreeMap::new();
++    let mut partials = BTreeMap::new();
++    if let Some(id) = value["account_id"].as_str().map(str::to_owned) {
++        if let Some(entries) = value["playlists"].as_object_mut() {
++            for (uri, entry) in entries {
++                let all = libraries(paths, &id, uri);
++                decorate(&mut entry["tracks"], &all, &mut artwork);
++                if let Ok(index) = load_index(paths, &id) {
++                    if let Some(saved) = index.playlists.get(uri) {
++                        entry["cached_tracks"] =
++                            saved.tracks.iter().filter(|t| t.bytes > 0).count().into();
++                        entry["skipped_tracks"] =
++                            saved.tracks.iter().filter(|t| t.bytes == 0).count().into();
++                    }
++                }
++            }
++        }
++        if let Ok(dirs) = fs::read_dir(paths.account(&id).join("pending")) {
++            let last: Value = read_json(&paths.job).unwrap_or(Value::Null);
++            for dir in dirs
++                .flatten()
++                .filter(|d| d.file_type().is_ok_and(|t| t.is_dir()))
++            {
++                let selection: Option<Selection> =
++                    read_json(&dir.path().join("selection.json")).ok();
++                let (uri, total) = if let Some(s) = selection {
++                    (s.uri, s.uris.len())
++                } else if last["account_id"].as_str() == Some(&id)
++                    && last["uri"]
++                        .as_str()
++                        .is_some_and(|u| hash(u.as_bytes()) == dir.file_name().to_string_lossy())
++                {
++                    (
++                        last["uri"].as_str().unwrap_or_default().to_owned(),
++                        last["total"].as_u64().unwrap_or(0) as usize,
++                    )
++                } else {
++                    continue;
++                };
++                let library = Library::new(dir.path());
++                let tracks = library.tracks().unwrap_or_default();
++                if !tracks.is_empty() {
++                    partials.insert(
++                        uri,
++                        json!({"cached_tracks":tracks.len(),"total_tracks":total}),
++                    );
++                }
++            }
++        }
++    }
++    value["partials"] = serde_json::to_value(partials)?;
++    value["artwork"] = serde_json::to_value(artwork)?;
++    write_public(&paths.catalog, &value)
++}
++
++pub(super) fn write_preview(paths: &Paths, output: &Path, result: &Preview) -> Result<()> {
++    let mut value = serde_json::to_value(result)?;
++    let mut artwork = BTreeMap::new();
++    decorate(
++        &mut value["tracks"],
++        &libraries(paths, &result.account_id, &result.uri),
++        &mut artwork,
++    );
++    value["artwork"] = serde_json::to_value(artwork)?;
++    write_public(output, &value)
++}
++
++pub(super) fn write_job(paths: &Paths, job: &Job, item: Option<(usize, &str)>) -> Result<()> {
++    let mut value = serde_json::to_value(job)?;
++    let mut artwork = BTreeMap::new();
++    if let Some(id) = &job.account_id {
++        decorate(
++            &mut value["tracks"],
++            &libraries(paths, id, &job.uri),
++            &mut artwork,
++        );
++    }
++    if let Some((index, uri)) = item {
++        value["track_index"] = (index + 1).into();
++        value["track_uri"] = uri.into();
++    }
++    value["artwork"] = serde_json::to_value(artwork)?;
++    write_public(&paths.job, &value)
++}
++
++pub(super) fn write_playback(
++    _paths: &Paths,
++    library: &Library,
++    output: &Path,
++    status: &Playback,
++) -> Result<()> {
++    let mut value = serde_json::to_value(status)?;
++    let mut tracks = json!([value["track"].clone()]);
++    let mut artwork = BTreeMap::new();
++    if value["track"].is_object() {
++        decorate(
++            &mut tracks,
++            &[(library.clone(), String::new())],
++            &mut artwork,
++        );
++        value["track"] = tracks[0].clone();
++    }
++    value["artwork"] = serde_json::to_value(artwork)?;
++    write_json(output, &value)
++}
++
++fn listed(paths: &Paths, id: &str, uri: &str, index: usize, track_uri: &str) -> bool {
++    if let Ok(saved) = read_json::<Selection>(&paths.pending(id, uri).join("selection.json")) {
++        if saved.uri == uri && saved.uris.get(index).is_some_and(|u| u == track_uri) {
++            return true;
++        }
++    }
++    let offset = index / super::super::native::PAGE_SIZE * super::super::native::PAGE_SIZE;
++    let cache = paths
++        .account(id)
++        .join("previews")
++        .join(hash(uri.as_bytes()))
++        .join(format!("{offset}.json"));
++    read_json::<Preview>(&cache).is_ok_and(|p| {
++        p.account_id == id
++            && p.uri == uri
++            && p.offset == offset
++            && p.tracks
++                .get(index - offset)
++                .is_some_and(|t| t.uri == track_uri)
++    })
++}
++
++pub(super) fn select_single(
++    paths: &Paths,
++    id: &str,
++    uri: &str,
++    index: usize,
++    track_uri: &str,
++) -> Result<(Library, Vec<Download>, String)> {
++    let committed = load_index(paths, id)?
++        .playlists
++        .get(uri)
++        .is_some_and(|p| p.tracks.get(index).is_some_and(|t| t.uri == track_uri));
++    ensure!(
++        committed || listed(paths, id, uri, index, track_uri),
++        "playlist_changed"
++    );
++    for (library, directory) in libraries(paths, id, uri) {
++        if library.contains_valid(track_uri) {
++            let track = library.track(track_uri)?;
++            return Ok((library, vec![track], directory));
++        }
++    }
++    bail!("track_unavailable: this title has not been cached")
++}
++
++pub(super) async fn cache_track(paths: &Paths, args: &ArgMatches, uri: &str) -> Result<()> {
++    let _lock = Lock::take(&paths.root.join("sync.lock"))?;
++    let id = account_id()?.context("authentication_required")?;
++    ensure!(
++        verified_account(paths, Some(&id)),
++        "authentication_required"
++    );
++    let position = *args.get_one::<usize>("index").context("missing index")?;
++    let track_uri = args
++        .get_one::<String>("track-uri")
++        .context("missing track URI")?;
++    ensure!(
++        track_uri.starts_with("spotify:track:") && track_uri.len() == 36,
++        "unsupported_item"
++    );
++    let mut job = Job {
++        version: VERSION,
++        request: paths.request.clone(),
++        account_id: Some(id.clone()),
++        process: Process::current()?,
++        uri: uri.into(),
++        phase: "resolving".into(),
++        completed: 0,
++        skipped: 0,
++        total: 1,
++        bytes: 0,
++        tracks: Vec::new(),
++        error: None,
++    };
++    write_job(paths, &job, Some((position, track_uri)))?;
++    let attempt: Result<()> = async {
++        // Cached playback remains fully offline; a click to download explicitly refreshes membership.
++        let auth = auth::AuthConfig::new(config::get_config())?;
++        let session = auth.session();
++        let credentials = auth::get_creds(&auth, false, true)?;
++        tokio::time::timeout(Duration::from_secs(30), session.connect(credentials, true)).await??;
++        let listing = super::super::native::listing(&session, uri).await?;
++        ensure!(
++            listing.uris.get(position) == Some(track_uri),
++            "playlist_changed"
++        );
++        let library = Library::new(paths.pending(&id, uri));
++        library.create()?;
++        write_json(
++            &library.root().join("selection.json"),
++            &Selection {
++                uri: uri.into(),
++                name: listing.name,
++                uris: listing.uris,
++            },
++        )?;
++        job.phase = "downloading".into();
++        write_job(paths, &job, Some((position, track_uri)))?;
++        let complete = load_index(paths, &id)?;
++        if let Some(entry) = complete.playlists.get(uri) {
++            reuse(&entry_library(paths, &id, entry)?, library.root())?;
++        }
++        if !library.contains_valid(track_uri) {
++            super::super::download_checked(&session, &library, track_uri, |bytes| {
++                check_capacity(paths, bytes)
++            })
++            .await?;
++        }
++        let saved = library.track(track_uri)?;
++        if saved
++            .cover_url
++            .as_ref()
++            .is_some_and(|url| !library.cover_is_valid(url))
++        {
++            let _ = super::super::download_cover(&library, saved.cover_url.as_deref()).await;
++        }
++        job.bytes = saved.bytes;
++        job.completed = 1;
++        job.tracks.push(Track::from(saved));
++        session.shutdown();
++        Ok(())
++    }
++    .await;
++    job.phase = if attempt.is_ok() { "complete" } else { "error" }.into();
++    job.error = attempt.as_ref().err().map(|e| error_code(e).into());
++    write_job(paths, &job, Some((position, track_uri)))?;
++    publish_catalog(paths, None)?;
++    attempt
 +}
 diff --git a/spotify_player/src/downloads/mod.rs b/spotify_player/src/downloads/mod.rs
-index b15bcea..8b64428 100644
+index b15bcea..ffea5f1 100644
 --- a/spotify_player/src/downloads/mod.rs
 +++ b/spotify_player/src/downloads/mod.rs
 @@ -0,0 +1,4 @@
@@ -2557,7 +3117,11 @@ index b15bcea..8b64428 100644
 +    let (file_id, rate) = selected_file(&item, &formats).context("track_unavailable")?;
 @@ -278,0 +385 @@ async fn download(session: &Session, library: &Library, uri: &str) -> Result<()>
 +    check(bytes)?;
-@@ -340,0 +448,59 @@ mod tests {
+@@ -312 +419,2 @@ async fn download(session: &Session, library: &Library, uri: &str) -> Result<()>
+-    download_cover(library, cover_url.as_deref()).await
++    let _ = download_cover(library, cover_url.as_deref()).await;
++    Ok(())
+@@ -340,0 +449,59 @@ mod tests {
 +    fn metadata(uri: SpotifyUri) -> AudioItem {
 +        AudioItem {
 +            track_id: uri.clone(),
@@ -2619,10 +3183,10 @@ index b15bcea..8b64428 100644
 +
 diff --git a/spotify_player/src/downloads/native.rs b/spotify_player/src/downloads/native.rs
 new file mode 100644
-index 0000000..a499089
+index 0000000..47c9392
 --- /dev/null
 +++ b/spotify_player/src/downloads/native.rs
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,100 @@
 +use anyhow::{ensure, Context, Result};
 +use librespot_core::{Session, SpotifyUri};
 +use librespot_metadata::{
@@ -2679,6 +3243,8 @@ index 0000000..a499089
 +    pub album: String,
 +    pub duration_ms: u32,
 +    pub bytes: u64,
++    #[serde(default)]
++    pub image: Option<String>,
 +    pub problem: Option<String>,
 +}
 +
@@ -2711,6 +3277,13 @@ index 0000000..a499089
 +        album,
 +        duration_ms: item.duration_ms,
 +        bytes: 0,
++        image: item
++            .covers
++            .iter()
++            .filter(|c| c.width <= 640)
++            .max_by_key(|c| c.width)
++            .or_else(|| item.covers.first())
++            .map(|c| c.url.clone()),
 +        problem,
 +    })
 +}
@@ -2848,7 +3421,7 @@ index f277f8b..ad67eb1 100644
 +                    state.playing = false;
 +                    state.ended = true;
 diff --git a/spotify_player/src/downloads/store.rs b/spotify_player/src/downloads/store.rs
-index a7811f0..97b141c 100644
+index a7811f0..9cf8885 100644
 --- a/spotify_player/src/downloads/store.rs
 +++ b/spotify_player/src/downloads/store.rs
 @@ -3 +3 @@ use std::{
@@ -2942,28 +3515,39 @@ index a7811f0..97b141c 100644
 +        &self.root
 +    }
 +
-@@ -202,2 +281,2 @@ impl Library {
+@@ -185,0 +265,10 @@ impl Library {
++    // Listing cached titles only needs the atomic file and its bounded header.
++    // Playback still verifies the complete checksum before decoding.
++    pub fn cached_track(&self, uri: &str) -> Option<Download> {
++        let mut file = File::open(self.path(uri).ok()?).ok()?;
++        let track = read_header(&mut file).ok()?;
++        let offset = file.stream_position().ok()?;
++        (track.uri == uri && file.metadata().ok()?.len().checked_sub(offset)? == track.bytes)
++            .then_some(track)
++    }
++
+@@ -202,2 +291,2 @@ impl Library {
 -        let mut encrypted = Vec::new();
 -        audio.take(MAX_AUDIO + 1).read_to_end(&mut encrypted)?;
 +        let mut payload = tempfile::NamedTempFile::new_in(&self.root)?;
 +        let received = io::copy(&mut audio.take(MAX_AUDIO + 1), &mut payload)?;
-@@ -205 +284 @@ impl Library {
+@@ -205 +294 @@ impl Library {
 -            encrypted.len() as u64 == track.bytes,
 +            received == track.bytes,
-@@ -208 +287 @@ impl Library {
+@@ -208 +297 @@ impl Library {
 -            encrypted.len()
 +            received
-@@ -210,2 +289,3 @@ impl Library {
+@@ -210,2 +299,3 @@ impl Library {
 -        track.sha256 = checksum(&encrypted);
 -        let mut decoder = decode(&track, &encrypted)?;
 +        payload.seek(SeekFrom::Start(0))?;
 +        track.sha256 = checksum_reader(payload.as_file_mut())?.0;
 +        let mut decoder = decode(&track, payload.reopen()?, 0)?;
-@@ -224 +304,2 @@ impl Library {
+@@ -224 +314,2 @@ impl Library {
 -        file.write_all(&encrypted)?;
 +        payload.seek(SeekFrom::Start(0))?;
 +        io::copy(&mut payload, &mut file)?;
-@@ -234,8 +315,5 @@ impl Library {
+@@ -234,8 +325,5 @@ impl Library {
 -        let mut encrypted = Vec::new();
 -        file.take(MAX_AUDIO + 1).read_to_end(&mut encrypted)?;
 -        anyhow::ensure!(encrypted.len() as u64 == saved.bytes, "truncated download");
@@ -2977,7 +3561,7 @@ index a7811f0..97b141c 100644
 +        anyhow::ensure!(bytes == saved.bytes, "truncated download");
 +        anyhow::ensure!(digest == saved.sha256, "download checksum mismatch");
 +        decode(&saved, file, offset)
-@@ -290,3 +368,6 @@ fn read_header(file: &mut File) -> Result<Download> {
+@@ -290,3 +378,6 @@ fn read_header(file: &mut File) -> Result<Download> {
 -fn decode(track: &Download, encrypted: &[u8]) -> Result<SymphoniaDecoder> {
 -    let mut decrypted = Vec::with_capacity(encrypted.len());
 -    AudioDecrypt::new(Some(AudioKey(track.key)), encrypted).read_to_end(&mut decrypted)?;
@@ -2987,13 +3571,13 @@ index a7811f0..97b141c 100644
 +    let mut decrypted = AudioDecrypt::new(Some(AudioKey(track.key)), encrypted);
 +    let mut prefix = [0; 171];
 +    decrypted.read_exact(&mut prefix)?;
-@@ -295 +376 @@ fn decode(track: &Download, encrypted: &[u8]) -> Result<SymphoniaDecoder> {
+@@ -295 +386 @@ fn decode(track: &Download, encrypted: &[u8]) -> Result<SymphoniaDecoder> {
 -        decrypted.get(167..171) == Some(b"OggS"),
 +        &prefix[167..171] == b"OggS",
-@@ -301 +382 @@ fn decode(track: &Download, encrypted: &[u8]) -> Result<SymphoniaDecoder> {
+@@ -301 +392 @@ fn decode(track: &Download, encrypted: &[u8]) -> Result<SymphoniaDecoder> {
 -        Cursor::new(decrypted.split_off(167)),
 +        Region::new(decrypted, 167, track.bytes - 167)?,
-@@ -308,0 +390,20 @@ mod tests {
+@@ -308,0 +400,20 @@ mod tests {
 +    use std::io::Cursor;
 +
 +    #[test]
@@ -3014,6 +3598,6 @@ index a7811f0..97b141c 100644
 +        assert_eq!(region.read(&mut last).unwrap(), 2);
 +        assert_eq!(last, [11, 12]);
 +    }
-@@ -338,0 +440,2 @@ mod tests {
+@@ -338,0 +450,2 @@ mod tests {
 +        decoder.seek(0).unwrap();
 +        assert!(decoder.next_packet().unwrap().is_some());

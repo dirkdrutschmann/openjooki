@@ -72,7 +72,8 @@ local DESC = {
   ["spotify_offline.auth_helper"] = "Computer helper heartbeat and public authorization status. Completion must match the active request; secrets travel separately over SSH. Parent code protected.",
   ["spotify_offline.remove"] = "Removes the saved snapshot while playback and synchronization are stopped. Parent code protected.",
   ["spotify_offline.mode"] = "Selects original streaming (online), saved snapshot when complete (auto), or required offline playback. Parent code protected.",
-  ["spotify_offline.play"] = "Plays a saved snapshot, optionally at a one-based song index, through normal transport controls.",
+  ["spotify_offline.cache_track"] = "Queues one exact, currently listed title by one-based index and track URI. Optional play starts it after successful caching. Keeps the playlist playback mode and other cached titles; parent-code protected.",
+  ["spotify_offline.play"] = "Plays a saved snapshot, optionally at a one-based song index, through normal transport controls. With track_uri, plays that cached title alone even when the whole playlist is incomplete.",
   ["spotify_offline.forget_account"] = "Stops owned jobs, invalidates pending login, clears the queue and forgets this backend’s grants. Keeps the original online account. Parent code protected.",
   ["deezer.get_playlists"] = "Asks the Deezer daemon for the user's playlists.", ["deezer.set_config"] = "Stores Deezer credentials for the daemon.",
 }

@@ -104,7 +104,7 @@ def main():
         offline['previews'][URI] = {'phase': 'complete', 'offset': 50, 'total': 710, 'tracks': tracks}
         offline['playlists'][URI] = {'ready': True, 'total_tracks': 710, 'bytes': 3145728, 'tracks': tracks}
         publish(offline)
-        titles.locator('li button').nth(1).click()
+        titles.locator('li').nth(1).locator('[data-track-play]').click()
         assert sent('OJ_OFFLINE_PLAY')['payload']['trackIndex'] == 52
         card.locator('select').select_option('online')
         assert sent('OJ_OFFLINE_MODE')['payload']['mode'] == 'online'
@@ -134,7 +134,7 @@ def main():
         offline['queue_paused'] = 'storage_full'
         publish(offline)
         expect(card.get_by_role('alert')).to_contain_text('Nicht genug freier Speicher')
-        expect(titles.locator('li button').first).to_be_enabled()
+        expect(titles.locator('[data-track-play]').first).to_be_enabled()
         card.get_by_role('button', name='Warteschlange fortsetzen', exact=True).click()
         assert sent('OJ_OFFLINE_RESUME_QUEUE') is not None
         results.append('full storage preserves complete audio and offers an explicit queue restart')

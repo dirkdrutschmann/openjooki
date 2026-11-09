@@ -17,7 +17,8 @@ import trial
 sys.path.insert(0, str(trial.ROOT / 'tools/openjooki'))
 import jooki  # noqa: E402
 
-VERSION = '2.4.21-offline.5'
+BASE_VERSION = '2.5.1'
+VERSION = BASE_VERSION + '-offline'
 SD_ROOT = '/jooki/external/openjooki-offline'
 
 
@@ -26,8 +27,8 @@ def digest(data):
 
 
 def assemble(work, output, version):
-    if not re.fullmatch(r'2\.4\.21-offline\.[1-9][0-9]*', version):
-        raise ValueError('Use a 2.4.21-offline.N test version')
+    if not re.fullmatch(re.escape(BASE_VERSION) + r'-offline(?:\.[1-9][0-9]*)?', version):
+        raise ValueError('Use a 2.5.1-offline test version')
     output.mkdir(parents=True, exist_ok=True)
     manifest = json.loads((work / 'mips-build.json').read_text())
     executable = work / 'cross-smoke/target' / mips.TARGET / 'release/spotify_player'
@@ -53,13 +54,16 @@ def assemble(work, output, version):
                                  '[device]\nbitrate = 96\nvolume = 100\naudio_cache = false\n').encode(),
                  'sdk/build.json': (json.dumps(manifest, indent=2) + '\n').encode(),
                  'licenses/spotify-player.txt': (Path(__file__).with_name('LICENSE.spotify-player')).read_bytes()}
+        # Keep system-side fixes (including the 2.5.1 boot guard) with the matching core.
+        for destination, source in jooki.system_files(str(core / 'player.lib')).items():
+            files['application' + destination] = (Path(jooki.SYSTEM_DIR) / source).read_bytes()
         web = Path(jooki.WEBUI_DIR)
         for name in jooki.WEBUI_FILES:
             data = (web / name).read_bytes()
             if name in ('index.html', 'app.js'):
-                data = data.replace(b'?v=2.4.21', ('?v=' + version).encode())
+                data = data.replace(('?v=' + BASE_VERSION).encode(), ('?v=' + version).encode())
             if name == 'app.js':
-                data = data.replace(b"var VERSION = '2.4.21';", ("var VERSION = '" + version + "';").encode())
+                data = data.replace(("var VERSION = '" + BASE_VERSION + "';").encode(), ("var VERSION = '" + version + "';").encode())
             files['webui/' + name] = data
         for folder in jooki.WEBUI_DIRS:
             for name in jooki.webui_dir_files(folder):
@@ -67,7 +71,7 @@ def assemble(work, output, version):
         files['README.txt'] = (
             'OpenJooki ' + version + '\nExperimental private test package.\n\n'
             'Application: Lua core and web page. Native player: static MIPS binary for SD.\n'
-            'Requires existing OpenJooki 2.4.21, mounted SD and separate Premium sign-in.\n'
+            'Requires an existing OpenJooki 2.4.21 or 2.5.x, mounted SD and separate Premium sign-in.\n'
             'Credentials, audio files and keys are deliberately excluded.\n'
             'Online keeps the existing vendor player; auto selects a completed local snapshot.\n'
             'Cold offline reboot/UI playback passed on one Jooki 2; physical figure acceptance remains.\n\n'
@@ -81,7 +85,7 @@ def assemble(work, output, version):
         source_hashes = {str(p.relative_to(trial.ROOT)): digest(p.read_bytes()) for p in sources
                          if 'spec' not in p.relative_to(trial.ROOT).parts}
         package_manifest = {
-            'format': 1, 'version': version, 'base_version': '2.4.21',
+            'format': 1, 'version': version, 'base_version': BASE_VERSION,
             'experimental': True, 'requires_premium_for_offline': True,
             'credentials_included': False, 'music_included': False,
             'sd_root': SD_ROOT, 'native_build': manifest,

@@ -19,7 +19,7 @@ The v1 contract (`/j/web/input/*`, `/j/web/output/*`) is still served, by `core/
 
 `device`, `health`, `library` {playlists, tracks, tokens}, `playback` {state, position_ms, now}, `audiocfg`, `volume_test` {active, target, percent, error}, `resume`, `bedtime` {cfg, night, sleep}, `limits`, `net`, `bluetooth`, `power`, `nfc`, `userMessages`, `spotify`, `spotify_offline` {availability, account and metadata readiness, playlists, modes, download, queue, jobs, previews, auth, player, storage}, `deezer`, `flags`, `maintenance` {ssh, ssh_until, ssh_keys, mqtt_lan, parent}, `net_watch`. (Private sub-trees — `config`, `system`, `activity`, every `*_int` — are not published.)
 
-## Commands (50)
+## Commands (51)
 
 ### `bedtime.set`
 
@@ -685,6 +685,40 @@ Payload schema:
 }
 ```
 
+### `spotify_offline.cache_track`
+
+Queues one exact, currently listed title by one-based index and track URI. Optional play starts it after successful caching. Keeps the playlist playback mode and other cached titles; parent-code protected.
+
+Payload schema:
+
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "index": {
+      "maximum": 10000,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "play": {
+      "type": "boolean"
+    },
+    "playlist": {
+      "maxLength": 100,
+      "minLength": 1,
+      "type": "string"
+    },
+    "track_uri": {
+      "maxLength": 36,
+      "minLength": 36,
+      "type": "string"
+    }
+  },
+  "required": ["playlist", "index", "track_uri"],
+  "type": "object"
+}
+```
+
 ### `spotify_offline.cancel_login`
 
 Invalidates the pending computer login request while retaining the existing account. Parent code protected.
@@ -778,7 +812,7 @@ Payload schema:
 
 ### `spotify_offline.play`
 
-Plays a saved snapshot, optionally at a one-based song index, through normal transport controls.
+Plays a saved snapshot, optionally at a one-based song index, through normal transport controls. With track_uri, plays that cached title alone even when the whole playlist is incomplete.
 
 Payload schema:
 
@@ -794,6 +828,11 @@ Payload schema:
     "playlist": {
       "maxLength": 100,
       "minLength": 1,
+      "type": "string"
+    },
+    "track_uri": {
+      "maxLength": 36,
+      "minLength": 36,
       "type": "string"
     }
   },

@@ -151,6 +151,7 @@
       var wasTesting = obj(S.audio.volume_test).active;
       mergeState(data);
       if (wasTesting && !obj(S.audio.volume_test).active && obj(S.audio.volume_test).error) toast(t('volume_test_failed'), 'error');
+      if (data.spotifyOffline) offlineTitleAccount(obj(S.spotifyOffline));
       if (posOnly) return;
       waiters = waiters.filter(function (w) { return !w(data); });
       if (!autoChecked && S.device.openjooki) { autoChecked = true; resumeUpdate(function (running) { if (!running) setTimeout(checkUpdate, 1500); }); }

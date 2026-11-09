@@ -83,7 +83,7 @@ local function start(doc, pb, playlist_id, opts)
   local lib = doc.library or { playlists = {}, tracks = {} }
   local p = lib.playlists[playlist_id]
   if not p then return nil, { code = "not_found", field = "playlist", message = "unknown playlist" } end
-  if has_offline and offline.wants(doc, playlist_id) then
+  if has_offline and (opts.track_uri or offline.wants(doc, playlist_id)) then
     local r, e = offline.start(doc, playlist_id, p, opts)
     if not r then return nil, e end
     if r.continued then r.now, r.continued = nil, nil; return r end
@@ -235,7 +235,7 @@ end
 -- ------------------------------------------------------------------ handlers
 function playback.on_request(doc, ev)
   local pb = pb_of(doc)
-  local r, err = start(doc, pb, ev.playlist, { index = ev.index, queue_pos = ev.queue_pos, now_s = ev.now, restart = ev.restart })
+  local r, err = start(doc, pb, ev.playlist, { index = ev.index, track_uri = ev.track_uri, queue_pos = ev.queue_pos, now_s = ev.now, restart = ev.restart })
   if not r then return { commands = { { kind = "log", level = "warn", key = "playback.request_failed", fields = { playlist = tostring(ev.playlist), err = err.message } } } } end
   return r
 end

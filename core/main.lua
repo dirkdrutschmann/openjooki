@@ -179,6 +179,9 @@ if config.get("http_port") > 0 then
     name = function() local d = state.doc(); return d.net and d.net.name end,
     log = function(key, fields) log.info(key, fields) end,
     on_upload = function(n) log.info("httpd.upload", { parts = n }) end,
+    offline_file = function(path)
+      if package.preload["services.spotify_offline_items"] then return require("services.spotify_offline_items").artwork(state.doc(), path) end
+    end,
     extra = function(method, path, headers, body) return upnp_net:http(state.doc(), method, path, headers, body, clock.now()) end,
   })
   local ok, err = httpd:start()

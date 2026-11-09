@@ -94,3 +94,8 @@ No fixed sleep: wait for the thing the next line reads.
 Two things to know about the state. The core sends whole top-level parts (`audio`, `bedtime`, `nfc`…),
 at most every 0.25 s: the client replaces them, an empty part reads as `{}`. The full answer to
 `GET_STATE` (what `barrier()` waits for) carries the same parts as the partial updates.
+
+`python3 test_spotify_offline_items_ui.py` checks individual cache/play controls,
+local covers, account-bound title pages across reloads, and German playlist
+footers at phone and desktop widths. Native download and exact-index behavior
+are covered by the SDK tests; audible device playback is verified separately.

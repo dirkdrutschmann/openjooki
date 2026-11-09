@@ -2,6 +2,7 @@
 local util = require("services.util")
 local json = require("vendor.json")
 local offline = {}
+local item_support = require("services.spotify_offline_items")
 local copy, err = util.copy, util.err
 local SERVICE = "SPOTIFY_OFFLINE"
 offline.SERVICE = SERVICE
@@ -40,9 +41,11 @@ local function restore_queue(doc, pub, int)
     local function add(item)
       if type(item) ~= "table" then return end
       local p = playlist(doc, item.playlist)
-      if p and p.spotify.uri == item.uri and not seen[item.uri] and #pub.queue < 32 then
-        pub.queue[#pub.queue + 1] = { playlist = item.playlist, uri = item.uri, title = p.title }
-        seen[item.uri] = true
+      local key = tostring(item.uri) .. ":" .. tostring(item.track_uri or "")
+      local valid = not item.track_uri or (item_support.valid_uri(item.track_uri) and type(item.index) == "number" and item.index >= 1 and item.index <= 10000 and item.index % 1 == 0)
+      if p and p.spotify.uri == item.uri and valid and not seen[key] and #pub.queue < 32 then
+        pub.queue[#pub.queue + 1] = { playlist = item.playlist, uri = item.uri, title = p.title, index = item.index, track_uri = item.track_uri }
+        seen[key] = true
       end
     end
     add(saved.active)
@@ -53,7 +56,7 @@ local function restore_queue(doc, pub, int)
   int.queue_account, int.restore_pending, int.saved_queue = pub.account_id, nil, nil
 end
 local function job_summary(data)
-  return { phase = data.phase, completed = data.completed, total = data.total, bytes = data.bytes, error = data.error }
+  return { phase = data.phase, completed = data.completed, skipped = data.skipped, total = data.total, bytes = data.bytes, error = data.error, track_uri = data.track_uri, track_index = data.track_index }
 end
 local function audio_active(doc)
   local pb = doc.playback or {}
@@ -69,10 +72,10 @@ local function kick_queue(doc, pub, int, cmds, now)
       int.next_id = (int.next_id or 0) + 1
       int.job_request = string.format("%.0f", (now or 0) * 1000) .. "-" .. int.next_id
       int.job_text, int.job_process, int.job_wait = nil, nil, 0
-      pub.download = { uri = item.uri, playlist = item.playlist, phase = "resolving", completed = 0, total = 0 }
+      pub.download = { uri = item.uri, playlist = item.playlist, phase = "resolving", completed = 0, total = 0, track_uri = item.track_uri, track_index = item.index }
       pub.jobs[item.uri] = job_summary(pub.download)
       cmds[#cmds + 1] = write_queue(doc, pub)
-      cmds[#cmds + 1] = action("sync", { uri = item.uri, request = int.job_request })
+      cmds[#cmds + 1] = action(item.track_uri and "cache_track" or "sync", { uri = item.uri, request = int.job_request, track_uri = item.track_uri, index = item.index and item.index - 1 })
       return
     end
     pub.jobs[item.uri] = { phase = "error", error = "playlist_changed" }
@@ -182,7 +185,8 @@ function offline.on_preview_request(doc, ev)
   local path = offline.paths(doc).scratch .. "/preview-" .. p.spotify.uri:sub(18) .. ".json"
   int.preview_wait = 0
   int.preview = { uri = p.spotify.uri, request = request, path = path, account_id = pub.account_id }
-  pub.previews = { [p.spotify.uri] = { phase = "loading", offset = offset, tracks = {} } }
+  local old = (pub.previews or {})[p.spotify.uri]
+  pub.previews = { [p.spotify.uri] = { phase = "loading", offset = offset, tracks = old and old.offset == offset and old.tracks or {} } }
   return result(pub, int, { action("preview", { uri = p.spotify.uri, request = request, offset = offset }) })
 end
 function offline.on_preview(doc, ev)
@@ -191,7 +195,9 @@ function offline.on_preview(doc, ev)
   local ok, data = pcall(json.decode, ev.text)
   if not (ok and type(data) == "table" and data.account_id == pub.account_id and data.request == int.preview.request and data.uri == int.preview.uri) then return nil end
   int.preview_wait = 0
-  int.preview_text = ev.text; pub.previews = { [data.uri] = data }
+  int.preview_text = ev.text
+  item_support.assets(doc, int, data)
+  pub.previews = { [data.uri] = data }
   return result(pub, int)
 end
 function offline.on_modes(doc, ev)
@@ -222,11 +228,20 @@ function offline.on_catalog(doc, ev)
   local changed = pub.account_id ~= data.account_id
   if changed then
     pub.download, pub.player, pub.previews = nil, nil, {}
+    int.pending_play, int.ready_play, int.artwork = nil, nil, {}
     int.preview, int.preview_text, int.job_process, int.session, int.controls = nil, nil, nil, nil, {}
   end
   pub.catalog_loaded = true
   pub.account_ready, pub.account_id = data.account_ready == true, data.account_id
-  pub.playlists = data.playlists
+  item_support.assets(doc, int, data, true)
+  for uri, entry in pairs(data.playlists) do
+    local old = (pub.playlists or {})[uri]
+    if old and old.snapshot_id ~= entry.snapshot_id then
+      if pub.previews then pub.previews[uri] = nil end
+      if int.preview and int.preview.uri == uri then int.preview, int.preview_text = nil, nil end
+    end
+  end
+  pub.playlists, pub.partials = data.playlists, data.partials or {}
   pub.storage = { used_bytes = data.used_bytes or 0, free_bytes = data.free_bytes or 0, quota_bytes = data.quota_bytes or 0 }
   pub.error = data.error
   pub.account_name, pub.premium_verified = data.account_name, data.premium_verified == true
@@ -250,6 +265,7 @@ function offline.on_job(doc, ev)
   if data.account_id ~= nil and data.account_id ~= pub.account_id then return nil end
   if int.job_request and data.request ~= int.job_request then return nil end
   int.job_text, int.job_process = ev.text, copy(data.process)
+  item_support.assets(doc, int, data)
   data.process = nil; pub.download = data
   if not data.playlist then
     for id, p in pairs((doc.library or {}).playlists or {}) do if p.spotify and p.spotify.uri == data.uri then data.playlist = id; break end end
@@ -258,6 +274,13 @@ function offline.on_job(doc, ev)
   pub.jobs = pub.jobs or {}; pub.jobs[data.uri] = job_summary(data)
   local cmds = {}
   if data.phase == "complete" or data.phase == "error" or data.phase == "interrupted" then cmds[1] = read(offline.paths(doc).catalog, "offline.catalog"); cmds[#cmds + 1] = write_queue(doc, pub) end
+  if int.pending_play and data.track_uri == int.pending_play.track_uri and data.uri == int.pending_play.uri then
+    if data.phase == "complete" then
+      cmds[#cmds + 1] = util.emit("offline.play_cached", copy(int.pending_play))
+      int.ready_play = int.pending_play
+      int.pending_play = nil
+    elseif data.phase == "error" or data.phase == "interrupted" then int.pending_play = nil end
+  end
   return result(pub, int, cmds)
 end
 function offline.on_process(doc, ev)
@@ -298,11 +321,11 @@ function offline.on_sync(doc, ev)
   if not pub.available then return nil, err("unavailable", "", "offline backend is not installed") end
   if not pub.account_ready then return nil, err("unavailable", "", "offline Premium authentication required") end
   pub.queue, pub.jobs = pub.queue or {}, pub.jobs or {}
-  if busy(pub) and pub.download.uri == p.spotify.uri then return result(pub, int) end
-  for _, item in ipairs(pub.queue) do if item.uri == p.spotify.uri then return result(pub, int) end end
+  if busy(pub) and pub.download.uri == p.spotify.uri and pub.download.track_uri == ev.track_uri then return result(pub, int) end
+  for _, item in ipairs(pub.queue) do if item.uri == p.spotify.uri and item.track_uri == ev.track_uri then return result(pub, int) end end
   if #pub.queue >= 32 then return nil, err("conflict", "", "download queue is full") end
-  pub.modes = pub.modes or {}; pub.modes[ev.playlist] = "auto"
-  pub.queue[#pub.queue + 1] = { playlist = ev.playlist, uri = p.spotify.uri, title = p.title }
+  pub.modes = pub.modes or {}; if not ev.track_uri then pub.modes[ev.playlist] = "auto" end
+  pub.queue[#pub.queue + 1] = { playlist = ev.playlist, uri = p.spotify.uri, title = p.title, index = ev.index, track_uri = ev.track_uri }
   pub.jobs[p.spotify.uri] = { phase = "queued" }
   local cmds = { write_modes(doc, pub), write_queue(doc, pub) }
   kick_queue(doc, pub, int, cmds, ev.now)
@@ -341,7 +364,7 @@ function offline.describe(id, p, snap, index)
   local total = snap.total_tracks or #snap.tracks
   return { playlist = id, service = SERVICE, index = index, queue_pos = index, track = t.uri, uri = t.uri,
     title = t.name, artist = table.concat(t.artists or {}, ", "), album = t.album, duration_ms = t.duration_ms,
-    source = p.title, audiobook = p.audiobook == true, has_next = index < total, has_prev = index > 1, image = p.image }
+    source = p.title, audiobook = p.audiobook == true, has_next = not snap.single and index < total, has_prev = not snap.single and index > 1, image = t.image or p.image }
 end
 function offline.transport(doc, name, value)
   local pub, int = current(doc), internal(doc)
@@ -355,7 +378,7 @@ function offline.transport(doc, name, value)
 end
 function offline.start(doc, id, p, opts)
   opts = opts or {}
-  local snap = offline.snapshot(doc, p)
+  local snap = opts.track_uri and item_support.single_snapshot(doc, id, p, opts) or offline.snapshot(doc, p)
   if not snap then return nil, err("unavailable", "playlist", "no complete offline snapshot") end
   local pb = doc.playback or {}
   if p.resume and not opts.restart and not opts.index and pb.now and pb.now.service == SERVICE and pb.now.playlist == id then
@@ -379,7 +402,7 @@ function offline.start(doc, id, p, opts)
   int.session = { id = session, playlist = id, uri = p.spotify.uri, control = prefix .. ".commands.json", status = prefix .. ".status.json", snapshot = copy(snap), account_id = pub.account_id }
   int.controls, int.player_text, int.player_process, int.stopping, int.player_wait = {}, nil, nil, false, 0
   cmds[#cmds + 1] = { kind = "files.write", path = int.session.control, doc = { session = session, commands = {} }, version = 1 }
-  cmds[#cmds + 1] = action("play", { uri = p.spotify.uri, session = session, index = index - 1, resume = p.resume == true and not opts.restart and not opts.index })
+  cmds[#cmds + 1] = action("play", { uri = p.spotify.uri, session = session, index = index - 1, track_uri = opts.track_uri, resume = p.resume == true and not opts.restart and not opts.index })
   local r = result(pub, int, cmds); r.now = offline.describe(id, p, snap, index)
   return r
 end
@@ -398,6 +421,7 @@ function offline.on_player(doc, ev)
   if not (snap and pb.now and pb.now.service == SERVICE and pb.now.playlist == int.session.playlist) then return result(pub, int) end
   local index = (tonumber(data.index) or 0) + 1
   if index < 1 or index > (snap.total_tracks or #snap.tracks) then return nil end
+  item_support.assets(doc, int, data)
   if type(data.track) == "table" then snap.current_track = data.track end
   pb.now = offline.describe(int.session.playlist, p, snap, index)
   local phase = data.phase
@@ -475,11 +499,12 @@ function offline.on_auth_helper(doc, ev)
   return result(pub, int)
 end
 function offline.on_play(doc, ev)
+  if ev.track_uri and not item_support.valid_uri(ev.track_uri) then return nil, err("invalid_argument", "track_uri", "invalid Spotify title selection") end
   local p, e = playlist(doc, ev.playlist); if not p then return nil, e end
-  if not offline.snapshot(doc, p) then return nil, err("unavailable", "playlist", "no complete offline snapshot") end
+  if not ev.track_uri and not offline.snapshot(doc, p) then return nil, err("unavailable", "playlist", "no complete offline snapshot") end
   local pub = current(doc); pub.modes = pub.modes or {}; pub.modes[ev.playlist] = "offline"
   local d = copy(doc); d.spotify_offline = pub
-  local r, pe = require("services.playback").on_request(d, { playlist = ev.playlist, index = ev.index, restart = true, now = ev.now })
+  local r, pe = require("services.playback").on_request(d, { playlist = ev.playlist, index = ev.index, track_uri = ev.track_uri, restart = true, now = ev.now })
   if not r then return nil, pe end
   r.state = r.state or {}; r.state.spotify_offline = r.state.spotify_offline or pub
   r.state.spotify_offline.modes = copy((doc.spotify_offline or {}).modes or {})
@@ -489,8 +514,9 @@ end
 local S = {}
 S.playlist = { type = "object", additionalProperties = false, required = { "playlist" }, properties = { playlist = { type = "string", minLength = 1, maxLength = 100 } } }
 S.mode = copy(S.playlist); S.mode.required = { "playlist", "mode" }; S.mode.properties.mode = { type = "string", enum = { "online", "auto", "offline" } }
-S.play = copy(S.playlist); S.play.properties.index = { type = "integer", minimum = 1, maximum = 10000 }
+S.play = copy(S.playlist); S.play.properties.index = { type = "integer", minimum = 1, maximum = 10000 }; S.play.properties.track_uri = { type = "string", minLength = 36, maxLength = 36 }
 function offline.install(api, dispatch)
+  item_support.install(api, dispatch, offline)
   local login_schema = { type = "object", additionalProperties = false, properties = { mode = { type = "string", enum = { "metadata", "premium" } } } }
   local helper_schema = { type = "object", additionalProperties = false, required = { "phase" }, properties = {
     phase = { type = "string", enum = { "ready", "working", "url", "complete", "error" } }, request = { type = "string", maxLength = 64 }, url = { type = "string", maxLength = 4096 }, error = { type = "string", maxLength = 100 } } }

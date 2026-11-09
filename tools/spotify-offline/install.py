@@ -26,6 +26,14 @@ FLAG = '/data/openjooki/spotify-offline-enabled'
 q = shlex.quote
 
 
+def compatible_base(installed, target):
+    if installed == target or installed == target + '-offline':
+        return True
+    if re.fullmatch(re.escape(target) + r'-offline\.[1-9][0-9]*', installed):
+        return True
+    return target == '2.5.1' and re.fullmatch(r'2\.(?:4\.21|5\.0)(?:-offline(?:\.[1-9][0-9]*)?)?', installed) is not None
+
+
 def package(path):
     files = {}
     with tarfile.open(path, 'r:gz') as archive:
@@ -36,13 +44,14 @@ def package(path):
                 raise ValueError('Too many package files')
             files[member.name] = archive.extractfile(member).read()
     manifest = json.loads(files.pop('manifest.json'))
-    if manifest['format'] != 1 or manifest['sd_root'] != SD_ROOT or not re.fullmatch(r'2\.4\.21-offline\.[1-9][0-9]*', manifest['version']):
+    if manifest['format'] != 1 or manifest['sd_root'] != SD_ROOT or not re.fullmatch(r'2\.(?:4\.21|5\.1)-offline(?:\.[1-9][0-9]*)?', manifest['version']):
         raise ValueError('Unsupported package')
     if set(files) != set(manifest['files']):
         raise ValueError('Package inventory differs from its manifest')
     allowed = {'application/jooki/lib/player.lib', 'application/jooki/lib/core.lua',
                'application/etc/openjooki-version', 'sdk/spotify_player', 'sdk/app.toml',
                'sdk/build.json', 'licenses/spotify-player.txt', 'README.txt'}
+    allowed.update('application' + destination for destination in jooki.system_files(core=True))
     for name, data in files.items():
         parts = Path(name).parts
         if name not in allowed and not (name.startswith('webui/') and '..' not in parts and not Path(name).is_absolute()):
@@ -174,7 +183,9 @@ def apply(host, manifest, files, auth, state_path):
 
         try:
             jooki._webui_build, jooki.switch_or_back = build, switch
-            jooki.system_files = lambda _core=None: {'/etc/openjooki-version': 'version'}
+            archived_system = {path: name for path, name in original_system(str(core / 'player.lib')).items() if path in application}
+            archived_system['/etc/openjooki-version'] = 'version'
+            jooki.system_files = lambda _core=None: archived_system
             result = jooki.ab_webui(host, core=str(core / 'player.lib'))
             if result:
                 if result != jooki.AB_LOST:
@@ -222,7 +233,7 @@ def main():
             raise ValueError('Package archive required')
         manifest, files = package(args.archive)
         version = remote(args.host, 'cat /etc/openjooki-version').strip()
-        if version != manifest['base_version'] and not version.startswith(manifest['base_version'] + '-offline.'):
+        if not compatible_base(version, manifest['base_version']):
             raise ValueError('Expected existing OpenJooki ' + manifest['base_version'])
         mounted = remote(args.host, "awk '$2 == \"/jooki/external\" {print $3}' /proc/mounts").strip()
         if mounted != 'ext4':

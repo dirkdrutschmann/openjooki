@@ -32,3 +32,7 @@ when it was one file of 3 000 lines. The order matters only for what runs while 
 | `17-update.js` | OpenJooki updates from the page |
 | `18-settings.js`, `19-bedtime.js`, `20-sort.js` | Settings and its topic pages; night mode and sleep timer; sorting a playlist |
 | `21-player.js`, `22-render.js`, `23-boot.js` | the player bar and sheet; `render()`; start-up |
+
+The combined device bundle keeps a 336 KiB CI budget (previously 320 KiB).
+The extra allowance covers account-bound title-page caching, individual offline
+controls and their four translations; images remain separate cached files.

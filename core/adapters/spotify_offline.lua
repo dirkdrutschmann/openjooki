@@ -8,17 +8,17 @@ function adapter.install(shell, config)
   if not (path(root) and path(scratch) and path(binary) and type(quota) == "number" and (quota == 0 or quota >= 1048576) and quota == math.floor(quota)) then error("invalid offline configuration") end
   local function args(command, a)
     a = a or {}
-    if command == "sync" or command == "remove" or command == "play" or command == "preview" then if not uri(a.uri) then return nil, "invalid Spotify playlist URI" end end
-    local memory = command == "sync" and 16384 or (command == "play" and 12288 or 8192)
+    if command == "cache-track" or command == "sync" or command == "remove" or command == "play" or command == "preview" then if not uri(a.uri) then return nil, "invalid Spotify playlist URI" end end
+    local memory = (command == "sync" or command == "cache-track") and 16384 or (command == "play" and 12288 or 8192)
     -- LuaSocket descriptors survive exec on the device. A long-lived player must
     -- not retain the core's HTTP listener and prevent the next core from binding.
     local script = 'for offline_fd_path in /proc/self/fd/*; do offline_fd=${offline_fd_path##*/}; case "$offline_fd" in 0|1|2|*[!0-9]*) continue;; esac; eval "exec ${offline_fd}>&-"; done; ulimit -c 0; ulimit -d ' .. memory .. '; ulimit -v 65536; umask 077; mkdir -p "$1" "$2/tmp" || exit 1; export TMPDIR="$2/tmp"; shift 2; export RUST_LOG=off; exec "$@"'
-    if command == "sync" then script = script:gsub('exec "%$@"', 'exec nice -n 15 "$@"') end
+    if command == "sync" or command == "cache-track" then script = script:gsub('exec "%$@"', 'exec nice -n 15 "$@"') end
     local out = { "/bin/busybox", "sh", "-c", script, "offline", scratch, root .. "/store",
       binary, "-c", root .. "/config", "-C", root .. "/cache", "downloads", "managed",
       "--store", root .. "/store", "--catalog", scratch .. "/catalog.json", "--job", scratch .. "/job.json",
       "--quota-bytes", string.format("%.0f", quota) }
-    if command == "sync" or command == "preview" or command == "activate-login" then
+    if command == "cache-track" or command == "sync" or command == "preview" or command == "activate-login" then
       if type(a.request) ~= "string" or #a.request > 64 or not a.request:match("^[%d%-]+$") then return nil, "invalid offline request" end
       out[#out + 1] = "--request"; out[#out + 1] = a.request
     end
@@ -41,6 +41,14 @@ function adapter.install(shell, config)
       for _, x in ipairs({ "--session", a.session, "--control", prefix .. ".commands.json", "--status", prefix .. ".status.json", "--index", tostring(a.index) }) do out[#out + 1] = x end
       if a.resume then out[#out + 1] = "--resume" end
     end
+    if command == "cache-track" or (command == "play" and a.track_uri) then
+      if type(a.track_uri) ~= "string" or #a.track_uri ~= 36 or not a.track_uri:match("^spotify:track:%w+$") then return nil, "invalid track URI" end
+      out[#out + 1] = "--track-uri"; out[#out + 1] = a.track_uri
+      if command == "cache-track" then
+        if type(a.index) ~= "number" or a.index < 0 or a.index > 9999 or a.index % 1 ~= 0 then return nil, "invalid track index" end
+        out[#out + 1] = "--index"; out[#out + 1] = tostring(a.index)
+      end
+    end
     return out
   end
   shell.ACTIONS.offline_auth_cancel = { argv = function(a)
@@ -49,9 +57,9 @@ function adapter.install(shell, config)
   shell.ACTIONS.offline_auth_activate = { argv = function(a)
     return args("activate-login", a)
   end, background = true }
-  for _, name in ipairs({ "catalog", "sync", "remove", "play", "forget", "preview" }) do
+  for _, name in ipairs({ "catalog", "sync", "remove", "play", "forget", "preview", "cache_track" }) do
     local command = name
-    shell.ACTIONS["offline_" .. command] = { argv = function(a) return args(command, a) end, background = true }
+    shell.ACTIONS["offline_" .. command] = { argv = function(a) return args(command == "cache_track" and "cache-track" or command, a) end, background = true }
   end
 end
 return adapter

@@ -238,3 +238,32 @@ unavailable; exact sync retains partial files and reports the failed position,
 without publishing or silently truncating the playlist. The 18-song Krokodil
 snapshot remains fully available. Native children close inherited descriptors
 before exec so a paused child cannot hold the web listener across core restart.
+
+## 2.5.1-offline
+
+This candidate combines current upstream 2.5.1 with the personal fork's update
+channel. The package version is `2.5.1-offline`; the installer accepts the known
+2.4.21/2.5.x installation and offline-candidate versions for this upgrade.
+
+Playlist cards show their local title count and the selected online/offline
+playback route. Each title has a download chip (check when stored) and Play.
+An uncached Play request queues just that title and starts it when caching succeeds;
+a cached title can play directly without a complete playlist snapshot. These
+explicit starts leave the saved playlist mode unchanged and preserve source
+positions. Album covers are served locally through an account-bound image route;
+private audio files, keys and store paths are never published in player state.
+Missing covers do not prevent audio playback.
+
+Whole-playlist sync refreshes current membership. Per-title download/format
+failures are recorded and skipped; successful titles keep their source order.
+The snapshot retains unavailable rows and its skipped count, while playback
+steps over these declared skips. A missing file that was declared successfully
+stored still invalidates the snapshot. Authentication, rate limiting and full
+storage stop the operation rather than treating all remaining titles as missing.
+This explicitly replaces the earlier all-or-nothing rule for an unavailable song.
+
+Metadata pages remain on the SD card. The browser also keeps up to 48 recent
+account-bound pages, shows them immediately and refreshes in the background.
+A changed snapshot invalidates older pages; changing accounts or signing out
+clears the previous account's browser cache. The German card footer reserves
+space for Play and wraps long labels instead of placing them under the button.

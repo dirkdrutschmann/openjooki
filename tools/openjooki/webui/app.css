@@ -184,9 +184,10 @@ main { flex: 1; width: 100%; max-width: 900px; margin: 0 auto; padding: 16px 16p
 .pl:hover { transform: translateY(-1px); }
 .pl .ph { display: flex; align-items: center; justify-content: space-between; }
 .pl .name { font-weight: 700; font-size: 16px; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.pl .meta { font-size: 13px; color: var(--muted); margin-top: auto; }
+.pl-footer { display: flex; align-items: flex-end; gap: 10px; margin-top: auto; min-width: 0; }
+.pl .meta { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .pl.active { outline: 3px solid var(--accent); }
-.pl .play { position: absolute; right: 10px; bottom: 10px; }
+.pl .play { flex: 0 0 auto; }
 .newpl { border: 2px dashed var(--line); background: transparent; box-shadow: none; align-items: center; justify-content: center; color: var(--muted); font-weight: 600; }
 
 /* ---------- tokens */
@@ -534,7 +535,7 @@ button.srow:disabled { opacity: .5; cursor: default; }
 .spotify-titles { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 20px; }
 [data-k=spotify-metadata] .spotify-titles { margin-top: 0; border: 0; padding-top: 0; }
 .offline-tracks { list-style: none; margin: 14px 0 0; padding: 0; }
-.offline-track { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.offline-track { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .offline-track:last-child { border-bottom: 0; }
 .offline-track.selected { color: var(--accent); }
 .offline-number { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: center; }
@@ -543,4 +544,14 @@ button.srow:disabled { opacity: .5; cursor: default; }
 .offline-duration { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .offline-paging { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
 .offline-paging .btn { padding: 9px; font-size: 13px; }
-@media (max-width: 420px) { .offline-panel { padding: 16px; } .offline-track { gap: 7px; grid-template-columns: 20px minmax(0, 1fr) auto auto; } .offline-heading h3 { font-size: 17px; } }
+@media (max-width: 420px) { .offline-panel { padding: 16px; } .offline-track { gap: 7px; grid-template-columns: 36px minmax(0, 1fr) auto; } .offline-heading h3 { font-size: 17px; } }
+
+.pl-offline-status { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 7px; }
+.pl-offline-status .offline-badge { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; flex-wrap: wrap; }
+.pl-offline-status svg { width: 14px; height: 14px; flex: none; }
+.offline-art { position: relative; width: 36px; height: 36px; overflow: hidden; border-radius: 6px; background: var(--panel-2); display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+.offline-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.offline-track-actions { display: flex; align-items: center; gap: 4px; }
+.offline-chip { display: grid; place-items: center; width: 34px; height: 30px; padding: 5px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel-2); color: var(--accent); }
+.offline-chip.ready:disabled { color: #19834a; opacity: 1; background: #19834a15; }
+.offline-chip svg { width: 18px; height: 18px; }

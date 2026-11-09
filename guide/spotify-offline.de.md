@@ -109,3 +109,22 @@ Neue Queue-, Metadaten-, Free-Anzeige- und Anmeldewege haben zusätzliche Tests.
 Der Neustart ohne Internet mit Start über die Oberfläche ist inzwischen ebenfalls
 geprüft. Ein echter Free-Kontotest und der physische Figurentest stehen noch aus.
 [Technischer Prüfstand](../docs/34-spotify-offline-test.md).
+
+## Einzelne Titel und gespeicherte Listen
+
+Ab **2.5.1-offline** zeigt die Übersicht, wie viele Titel auf dem Jooki gespeichert
+sind. Bei Spotify-Kopien steht zusätzlich dabei, ob die Wiedergabe online oder
+aus der Offline-Kopie erfolgt. Der Pfeil-Chip neben einem Titel speichert nur
+diesen Titel; ein Häkchen zeigt eine vorhandene lokale Datei an. Mit Play lässt
+sich ein Titel direkt auswählen. Fehlt er noch, wird erst dieser Titel geladen
+und anschließend gestartet. Dafür muss nicht die ganze Playlist fertig sein.
+
+Nicht herunterladbare Titel werden beim vollständigen Download übersprungen und
+gezählt. Die übrigen Titel werden weiter gespeichert. Titel, die Spotify nicht
+mehr in der Playlist aufführt, verschwinden beim Aktualisieren aus der neuen
+lokalen Kopie. Verfügbare Albumcover werden mit der Musik gespeichert und auch
+ohne Internet angezeigt; ohne Cover bleibt ein Platzhalter.
+
+Bereits geladene Titelseiten erscheinen nach einem Neuladen sofort wieder.
+Die Aktualisierung erfolgt im Hintergrund. Beim Kontowechsel oder Abmelden
+werden die Titel des vorherigen Kontos aus dem Browser-Zwischenspeicher entfernt.

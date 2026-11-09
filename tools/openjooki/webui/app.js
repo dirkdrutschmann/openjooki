@@ -82,6 +82,13 @@
     volume_test_muted: 'Réactivez d’abord le son du Jooki.',
     volume_test_failed: 'Le son de test n’a pas pu être joué. Veuillez réessayer.',
     volume_test_unavailable: 'Ce test de volume est indisponible pour le moment.',
+    of_cache_item: 'Enregistrer ce titre hors ligne',
+    of_item_stored: 'Enregistré hors ligne',
+    of_play_item: 'Lire ce titre',
+    of_route_online: 'Lecture : en ligne',
+    of_route_offline: 'Lecture : hors ligne',
+    of_stored_count: function (n, total) { return n + '/' + total + ' hors ligne'; },
+    of_skipped_count: function (n) { return n + (n === 1 ? ' titre ignoré' : ' titres ignorés'); },
     toy_safe_maxvol: 'Volume maximal en mode enfant', toy_safe_maxvol_help: 'Remplace la limite d’usine fixe. Même échelle globale que le mode nuit ; la plus petite limite s’applique. Le volume demandé reste mémorisé.',
     random_start: 'Commencer par un morceau au hasard', random_start_help: 'Pour les playlists musicales sur le Jooki, y compris Spotify. Les livres audio gardent leur position.',
     lights_off: 'Éteindre toutes les lumières en permanence',
@@ -296,6 +303,13 @@
     volume_test_muted: 'Unmute the Jooki first.',
     volume_test_failed: 'The test tone could not play. Please try again.',
     volume_test_unavailable: 'This volume test is currently unavailable.',
+    of_cache_item: 'Save this song offline',
+    of_item_stored: 'Saved offline',
+    of_play_item: 'Play this song',
+    of_route_online: 'Playback: online',
+    of_route_offline: 'Playback: offline',
+    of_stored_count: function (n, total) { return n + '/' + total + ' offline'; },
+    of_skipped_count: function (n) { return n + (n === 1 ? ' song skipped' : ' songs skipped'); },
     toy_safe_maxvol: 'Maximum volume in kids mode', toy_safe_maxvol_help: 'Replaces the fixed factory limit. Uses the same global volume scale as night mode; the lower ceiling wins. The requested volume is kept.',
     random_start: 'Start with a random song', random_start_help: 'For music playlists, including Spotify. Audiobooks keep their place.',
     lights_off: 'Turn off all lights permanently',
@@ -493,6 +507,13 @@
     volume_test_muted: 'Hebe zuerst die Stummschaltung auf.',
     volume_test_failed: 'Der Testton konnte nicht abgespielt werden. Versuche es erneut.',
     volume_test_unavailable: 'Dieser Lautstärketest ist gerade nicht verfügbar.',
+    of_cache_item: 'Diesen Titel offline speichern',
+    of_item_stored: 'Offline gespeichert',
+    of_play_item: 'Diesen Titel abspielen',
+    of_route_online: 'Wiedergabe: online',
+    of_route_offline: 'Wiedergabe: offline',
+    of_stored_count: function (n, total) { return n + '/' + total + ' offline'; },
+    of_skipped_count: function (n) { return n + (n === 1 ? ' Titel wurde übersprungen' : ' Titel wurden übersprungen'); },
     toy_safe_maxvol: 'Maximale Lautstärke im Kindermodus',
     toy_safe_maxvol_help: 'Ersetzt die feste Werksbegrenzung. Wie im Nachtmodus gilt die globale Lautstärkeskala; die kleinere Grenze zählt. Die Wunschlautstärke bleibt gespeichert.',
     random_start: 'Mit einem zufälligen Titel starten',
@@ -612,6 +633,13 @@
     volume_test_muted: 'Zet eerst het geluid van de Jooki weer aan.',
     volume_test_failed: 'De testtoon kon niet worden afgespeeld. Probeer het opnieuw.',
     volume_test_unavailable: 'Deze volumetest is momenteel niet beschikbaar.',
+    of_cache_item: 'Dit nummer offline opslaan',
+    of_item_stored: 'Offline opgeslagen',
+    of_play_item: 'Dit nummer afspelen',
+    of_route_online: 'Afspelen: online',
+    of_route_offline: 'Afspelen: offline',
+    of_stored_count: function (n, total) { return n + '/' + total + ' offline'; },
+    of_skipped_count: function (n) { return n + (n === 1 ? ' nummer overgeslagen' : ' nummers overgeslagen'); },
     toy_safe_maxvol: 'Maximumvolume in kindermodus', toy_safe_maxvol_help: 'Vervangt de vaste fabriekslimiet. Dezelfde globale volumeschaal als de nachtmodus; de laagste grens geldt. Het gevraagde volume blijft bewaard.',
     random_start: 'Met een willekeurig nummer beginnen', random_start_help: 'Voor muziekafspeellijsten, ook Spotify. Luisterboeken bewaren hun positie.',
     lights_off: 'Alle lampjes altijd uit',
@@ -766,14 +794,6 @@
   if (THEMES.indexOf(theme) < 0) theme = 'auto';
   function applyTheme() { if (theme === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', theme); }
   applyTheme();
-  // Also translate the light switch when the optional German table is present.
-  if (T.de) {
-    T.de.lights_off = 'Alle Lichter dauerhaft ausschalten';
-    T.de.lights_off_help = 'Ring, Seitenlichter und Herz bleiben rund um die Uhr aus, auch nach einem Neustart oder ohne Nachtmodus.';
-    T.de.night_lights_off = 'Alle Lichter während der Nacht ausschalten';
-    T.de.night_lights_off_help = 'Ring, Seitenlichter und Herz gehen während der eingestellten Zeiten aus und danach wieder an.';
-    T.de.night_dim_help = 'Die Dimm-Einstellung bleibt gespeichert und gilt, sobald die Lichter an sind.';
-  }
   function setTheme(v) { theme = v; lsSet('oj.theme', v); applyTheme(); render(); }
   function t(k) {
     var v = T[lang][k];
@@ -1057,6 +1077,7 @@
     edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
     back: '<path d="M15 5l-7 7 7 7"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    download: '<path d="M12 3v12M7 10l5 5 5-5M4 16v5h16v-5"/>',
     check: '<path d="M5 12l5 5 9-10"/>',
     shuffle: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>',
     repeat: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
@@ -1354,6 +1375,7 @@
       var wasTesting = obj(S.audio.volume_test).active;
       mergeState(data);
       if (wasTesting && !obj(S.audio.volume_test).active && obj(S.audio.volume_test).error) toast(t('volume_test_failed'), 'error');
+      if (data.spotifyOffline) offlineTitleAccount(obj(S.spotifyOffline));
       if (posOnly) return;
       waiters = waiters.filter(function (w) { return !w(data); });
       if (!autoChecked && S.device.openjooki) { autoChecked = true; resumeUpdate(function (running) { if (!running) setTimeout(checkUpdate, 1500); }); }
@@ -2178,9 +2200,11 @@
         onkeydown: function (e) { if (e.key === 'Enter') go('#/p/' + encodeURIComponent(p.id)); } },
         h('div', { class: 'ph' }, tokVisual(p.star, 'sm', S.nfc.starId && S.nfc.starId === p.star)),
         h('div', { class: 'name' }, p.title || '—'),
-        h('div', { class: 'meta' }, p.spotify ? t('sp_playlist') : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : '')),
-        n || p.spotify ? h('button', { class: 'icon-btn accent play', 'aria-label': t('play') + ' ' + (p.title || ''), onclick: function (e) {
-          e.stopPropagation(); playPlaylist(p); } }, icon('play')) : null);
+        h('div', { class: 'pl-footer' },
+          h('div', { class: 'meta' }, p.spotify ? t('sp_playlist') : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : ''),
+            spotifyStorageBadge(p)),
+          n || p.spotify ? h('button', { class: 'icon-btn accent play', 'aria-label': t('play') + ' ' + (p.title || ''), onclick: function (e) {
+            e.stopPropagation(); playPlaylist(p); } }, icon('play')) : null));
       return card;
     });
     cards.push(h('button', { class: 'card pl newpl', onclick: newPlaylistModal, 'data-k': 'newpl' }, icon('plus'), t('new_playlist')));
@@ -2458,10 +2482,18 @@
   }
   function spotifyOfflineCard(p, id) {
     var o = obj(S.spotifyOffline), premium = !!o.account_ready;
+    offlineTitleAccount(o);
     if (!o.available || !/^spotify:playlist:[A-Za-z0-9]{22}$/.test(p.spotify.uri || '')) return null;
     var snap = obj(obj(o.playlists)[p.spotify.uri]), latest = obj(obj(o.previews)[p.spotify.uri]);
     var pageKey = (o.account_id || '') + ':' + p.spotify.uri + ':' + (snap.snapshot_id || ''), wanted = offlinePageOffsets[pageKey] || 0;
-    if (latest.phase) offlinePreviewCache[pageKey + ':' + (Number(latest.offset) || 0)] = latest;
+    var metaKey = pageKey + ':' + (Number(latest.offset) || 0), previous = offlinePreviewCache[metaKey];
+    if (latest.phase && (!previous || previous.request !== latest.request || previous.phase !== latest.phase || arr(previous.tracks).length !== arr(latest.tracks).length)) {
+      offlinePreviewCache[metaKey] = Object.assign({}, latest, { fetched_at: Date.now() });
+      offlineSaveTitles(p.spotify.uri, offlinePreviewCache[metaKey], snap.snapshot_id);
+    }
+    if (!offlinePreviewCache[pageKey + ':' + wanted] && o.account_id) {
+      offlinePreviewCache[pageKey + ':' + wanted] = offlineLoadTitles(p.spotify.uri, wanted, snap.snapshot_id);
+    }
     var meta = obj(offlinePreviewCache[pageKey + ':' + wanted]);
     var active = obj(o.download), mine = active.uri === p.spotify.uri, busy = offlineBusy();
     var own = mine ? active : obj(obj(o.jobs)[p.spotify.uri]);
@@ -2473,7 +2505,7 @@
     var failedIndex = Number(own.completed) || 0;
     var failedTitle = failedUnavailable && failedIndex < firstPageTracks.length ? firstPageTracks[failedIndex].name : '';
     var queue = arr(o.queue), queuedAt = -1;
-    queue.forEach(function (item, index) { if (item.uri === p.spotify.uri) queuedAt = index; });
+    queue.forEach(function (item, index) { if (item.uri === p.spotify.uri && !item.track_uri) queuedAt = index; });
     var np = obj(S.audio.nowPlaying), offlineActive = np.service === 'SPOTIFY_OFFLINE' && !/^(STOPPED|ENDED)$/.test(S.audio.playback.state || '');
     var playing = offlineActive && (S.audio.playback.state !== 'PAUSED' || obj(o.player).state !== 'paused');
     var inUse = offlineActive && np.playlistId === id, storage = obj(o.storage), mode = obj(o.modes)[id] || 'online';
@@ -2485,7 +2517,7 @@
       else history.push(wanted);
       offlinePageOffsets[pageKey] = next; askSpotifyTitles(id, next, true);
     }
-    if (metadataReady && !meta.phase && (!ready || !tracks.length || tracks.length < total)) askSpotifyTitles(id, wanted, false);
+    if (metadataReady && ((!meta.phase && (!ready || !tracks.length || tracks.length < total)) || meta.from_disk || (meta.fetched_at && Date.now() - meta.fetched_at > 300000))) askSpotifyTitles(id, wanted, false);
     var other = userPlaylists().filter(function (item) { return item.spotify && item.spotify.uri === active.uri; })[0];
     function command(kind) { send(kind, { playlistId: id }); }
     var titleBlock = h('section', { class: 'spotify-titles', 'data-k': 'spotify-titles' },
@@ -2495,16 +2527,14 @@
       meta.phase === 'error' ? h('div', { class: 'offline-notice', role: 'alert' }, offlineErrorText(meta.error, 'metadata'),
         h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, offset, true); } }, t('of_retry'))) : null,
       tracks.length ? h('ol', { class: 'offline-tracks', start: offset + 1, 'data-k': 'offline-tracks' }, tracks.map(function (track, i) {
+        track = spotifyStoredTrack(p, track);
         var position = offset + i + 1, selected = np.service === 'SPOTIFY_OFFLINE' && np.playlistId === id && np.trackIndex === position;
         return h('li', { class: 'offline-track' + (selected ? ' selected' : '') },
-          h('span', { class: 'offline-number', 'aria-hidden': 'true' }, selected ? '♪' : String(position)),
+          h('span', { class: 'offline-art', 'aria-hidden': 'true' }, track.image ? h('img', { src: track.image, loading: 'lazy', alt: '', onerror: function (e) { e.target.style.display = 'none'; } }) : null, h('span', null, selected ? '♪' : String(position))),
           h('span', { class: 'offline-track-info' }, h('span', { class: 'title' }, track.name || '—'),
             h('span', { class: 'small muted' }, arr(track.artists).join(', ')),
-            track.problem ? h('span', { class: 'small muted' }, t('of_item_unavailable')) : null),
-          h('span', { class: 'small muted offline-duration' }, fmtTime((track.duration_ms || 0) / 1000)),
-          premium && ready ? h('button', { class: 'icon-btn', disabled: busy || !!track.problem, 'aria-label': t('of_play') + ': ' + (track.name || ''), onclick: function () {
-            send('OJ_OFFLINE_PLAY', { playlistId: id, trackIndex: position });
-          } }, icon('play')) : null);
+            h('span', { class: 'small muted' }, fmtTime((track.duration_ms || 0) / 1000) + ' · ' + t(track.cached ? 'of_item_stored' : track.problem ? 'of_item_unavailable' : 'of_online_badge'))),
+          spotifyTrackActions(Object.assign({ id: id }, p), track, position, busy));
       })) : metadataReady && !meta.phase ? h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, 0, true); } }, t('of_load_titles')) : null,
       tracks.length && (offset > 0 || offset + tracks.length < total) ? h('div', { class: 'offline-paging' },
         h('button', { class: 'btn ghost', disabled: offset === 0 || meta.phase === 'loading', onclick: function () { pageTo(0, true); } }, t('of_previous')),
@@ -2535,10 +2565,11 @@
         h('div', { class: 'offline-heading' }, h('span', null, t('of_busy')), h('b', null, (active.completed || 0) + ' / ' + (active.total || '…'))),
         !mine ? h('p', { class: 'small' }, t('of_other'), other ? h('a', { href: '#/p/' + encodeURIComponent(other.id) }, other.title || 'Spotify') : 'Spotify') : null,
         h('progress', { max: Math.max(1, Number(active.total) || 1), value: Number(active.completed) || 0, 'aria-label': t('of_busy') }),
-        h('span', { class: 'small muted' }, t('of_processed') + ': ' + offlineBytes(active.bytes))) : null,
+        h('span', { class: 'small muted' }, t('of_processed') + ': ' + offlineBytes(active.bytes) + (active.skipped ? ' · ' + t('of_skipped_count', active.skipped) : ''))) : null,
       /^(error|interrupted)$/.test(own.phase || '') ? h('p', { class: 'offline-notice error', role: 'alert' },
-        own.total ? failedUnavailable ? t('of_failed_at', failedIndex + 1, own.total) + (failedTitle ? ' ' + t('of_failed_title', failedTitle) : '') + ' ' : (own.completed || 0) + ' / ' + own.total + ' · ' : '', offlineErrorText(own.error)) : null,
+        own.total ? failedUnavailable ? t('of_failed_at', own.track_index || failedIndex + 1, own.track_index ? total : own.total) + (failedTitle ? ' ' + t('of_failed_title', failedTitle) : '') + ' ' : (own.completed || 0) + ' / ' + own.total + ' · ' : '', offlineErrorText(own.error)) : null,
       obj(o.player).playlist === id && obj(o.player).error ? h('p', { class: 'offline-notice error', role: 'alert' }, offlineErrorText(o.player.error, 'playback')) : null,
+      snap.skipped_tracks ? h('p', { class: 'offline-notice', role: 'status' }, t('of_skipped_count', snap.skipped_tracks)) : null,
       ready ? h('p', { class: 'small', 'data-k': 'offline-ready' }, t('of_ready') + ' · ' + (snap.total_tracks || arr(snap.tracks).length) + ' · ' + offlineBytes(snap.bytes)) : null,
       h('div', { class: 'offline-storage small muted' }, h('span', null, t('of_storage') + ': ' + offlineBytes(storage.used_bytes)),
         h('span', null, t('of_free') + ': ' + offlineBytes(storage.free_bytes))),
@@ -2547,6 +2578,85 @@
         h('ol', null, queue.map(function (item) { return h('li', null, h('a', { href: '#/p/' + encodeURIComponent(item.playlist) }, item.title || 'Spotify'),
           h('button', { class: 'icon-btn', 'aria-label': t('of_cancel_queue') + ': ' + (item.title || ''), onclick: function () { send('OJ_OFFLINE_CANCEL_QUEUED', { playlistId: item.playlist }); } }, icon('x'))); }))) : null,
       titleBlock);
+  }
+  // Metadata pages survive reloads. Audio availability always comes from the current account.
+  var offlineTitleAccountId = null;
+  function offlineTitlePrefix() { return 'oj.titles.1:' + (S.device.id || S.device.hostname || location.host) + ':'; }
+  function offlineTitleAccount(o) {
+    var account = o.account_id || '';
+    if (!account && !o.catalog_loaded) return;
+    if (offlineTitleAccountId === account) return;
+    offlineTitleAccountId = account;
+    try {
+      var prefix = offlineTitlePrefix();
+      Object.keys(localStorage).forEach(function (k) {
+        if (k.indexOf(prefix) === 0 && (!account || k.indexOf(prefix + account + ':') !== 0)) localStorage.removeItem(k);
+      });
+    } catch (e) {}
+  }
+  function offlineTitleKey(uri, offset) { return offlineTitlePrefix() + obj(S.spotifyOffline).account_id + ':' + uri + ':' + offset; }
+  function offlineLoadTitles(uri, offset, snapshot) {
+    try {
+      var saved = JSON.parse(lsGet(offlineTitleKey(uri, offset)) || 'null');
+      if (!saved || saved.uri !== uri || saved.offset !== offset || !Array.isArray(saved.tracks) || saved.tracks.length > 50) return null;
+      if (snapshot && saved.snapshot_id !== snapshot) return null;
+      saved.from_disk = true;
+      if (!snapshot || saved.snapshot_id !== snapshot) saved.tracks.forEach(function (t) { t.cached = false; });
+      return saved;
+    } catch (e) { return null; }
+  }
+  function offlineSaveTitles(uri, page, snapshot) {
+    if (page.phase !== 'complete' || !obj(S.spotifyOffline).account_id) return;
+    try {
+      var saved = { uri: uri, phase: 'complete', offset: Number(page.offset) || 0, total: page.total, name: page.name,
+        tracks: arr(page.tracks).slice(0, 50), snapshot_id: snapshot || '', saved_at: Date.now(), fetched_at: page.fetched_at };
+      var prefix = offlineTitlePrefix(), key = offlineTitleKey(uri, saved.offset);
+      var keys = Object.keys(localStorage).filter(function (k) { return k.indexOf(prefix) === 0 && k !== key; });
+      keys.sort(function (a, b) { return (JSON.parse(lsGet(a) || '{}').saved_at || 0) - (JSON.parse(lsGet(b) || '{}').saved_at || 0); });
+      while (keys.length >= 48) localStorage.removeItem(keys.shift());
+      lsSet(key, JSON.stringify(saved));
+    } catch (e) {}
+  }
+  function spotifyStoredTrack(p, track) {
+    var o = obj(S.spotifyOffline), snap = obj(obj(o.playlists)[p.spotify.uri]), result = snap.ready && track.cached === undefined && !track.problem ? Object.assign({}, track, { cached: true }) : track;
+    [arr(snap.tracks), arr(obj(o.download).uri === p.spotify.uri ? obj(o.download).tracks : [])].forEach(function (list) {
+      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (t.cached || t.bytes > 0)) result = Object.assign({}, track, { cached: true, image: t.image || track.image }); });
+    });
+    return result;
+  }
+  function spotifyStorageBadge(p) {
+    var o = obj(S.spotifyOffline);
+    if (!p.spotify) {
+      var files = arr(p.tracks), stored = files.filter(function (id) { var t = obj(S.db.tracks[id]); return t.filename && !t.isUrl; }).length;
+      return files.length ? h('div', { class: 'pl-offline-status' }, h('span', { class: 'offline-badge' + (stored === files.length ? ' ready' : '') },
+        icon(stored === files.length ? 'check' : 'globe'), stored ? t('of_stored_count', stored, files.length) : t('of_online_badge'))) : null;
+    }
+    if (!o.available) return null;
+    var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]);
+    var job = obj(obj(o.jobs)[p.spotify.uri]), count = Number(snap.cached_tracks || partial.cached_tracks) || (snap.ready ? Number(snap.total_tracks) : Number(job.completed)) || 0;
+    var total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
+    var downloading = obj(o.download).uri === p.spotify.uri && offlineBusy(), mode = obj(o.modes)[p.id] || 'online';
+    return h('div', { class: 'pl-offline-status' },
+      h('span', { class: 'offline-badge' + (snap.ready ? ' ready' : ''), 'data-k': 'playlist-cache' },
+        icon(snap.ready ? 'check' : count ? 'disk' : 'globe'), downloading ? t('of_busy') : count ? t('of_stored_count', count, total || count) : t('of_online_badge')),
+      snap.ready ? h('span', { class: 'small muted' }, t(mode === 'online' ? 'of_route_online' : 'of_route_offline')) : null);
+  }
+  function spotifyTrackActions(p, track, position, busy) {
+    var o = obj(S.spotifyOffline), queued = arr(o.queue).some(function (q) { return q.uri === p.spotify.uri && q.track_uri === track.uri; });
+    if (!o.account_ready) return null;
+    var current = obj(o.download), loading = busy && current.uri === p.spotify.uri && (!current.track_uri || current.track_uri === track.uri);
+    var label = track.cached ? t('of_item_stored') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
+    function cache(play) { send('OJ_OFFLINE_CACHE_TRACK', { playlistId: p.id, trackIndex: position, trackUri: track.uri, play: play }); }
+    return h('span', { class: 'offline-track-actions' },
+      h('button', { class: 'offline-chip' + (track.cached ? ' ready' : ''), disabled: track.cached || loading || queued || !o.account_ready,
+        title: label, 'aria-label': label + ': ' + (track.name || ''), 'data-track-cache': track.uri,
+        onclick: function () { cache(false); } }, icon(track.cached ? 'check' : 'download')),
+      o.account_ready ? h('button', { class: 'icon-btn', disabled: busy || queued, title: t('of_play_item'),
+        'aria-label': t('of_play_item') + ': ' + (track.name || ''), 'data-track-play': track.uri,
+        onclick: function () {
+          if (track.cached) send('OJ_OFFLINE_PLAY', { playlistId: p.id, trackIndex: position, trackUri: track.uri });
+          else cache(true);
+        } }, icon('play')) : null);
   }
   /* drag & drop reorder (mouse + touch through pointer events) */
   var drag = null;
