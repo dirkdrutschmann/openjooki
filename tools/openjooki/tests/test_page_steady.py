@@ -11,6 +11,9 @@ from playwright.sync_api import sync_playwright
 
 R = B.Results(); check = R.check
 j = B.boot(ui=True)
+# Isolate position updates from the night schedule: its active sleep timer redraws every second.
+j.send("OJ_BEDTIME_SET", {"enabled": False})
+j.wait_state("bedtime.cfg.enabled", False)
 pl = j.newpl("Songs", ["media/song1.mp3", "media/song2.mp3"], star=None)
 j.send("PLAYLIST_PLAY", {"playlistId": pl, "trackIndex": 0})
 j.wait_state("audio.playback.state", "PLAYING")

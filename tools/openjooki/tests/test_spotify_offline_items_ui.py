@@ -101,6 +101,24 @@ def main():
         expect(fresh.locator('[data-k=offline-tracks] li')).to_have_count(0)
         assert not fresh.evaluate('Object.keys(localStorage).some(k => k.includes("account-one:"))')
         checks.append('switching accounts clears the old private title pages and rows')
+
+        complete = copy.deepcopy(state)
+        complete['spotifyOffline']['playlists'] = {URI: {'ready': True, 'snapshot_id': 'saved-one', 'cached_tracks': 0, 'total_tracks': 3,
+                                                        'tracks': [dict(songs[1], bytes=999)]}}
+        complete['spotifyOffline']['previews'][URI]['tracks'][0]['cached'] = False
+        complete['spotifyOffline']['jobs'] = {URI: {'completed': 3}}
+        accuracy = page_for(complete)
+        accuracy.goto(url + '#/p/user_1')
+        expect(accuracy.locator('[data-track-cache]').nth(1)).to_be_enabled()
+        accuracy.goto(url + '#/')
+        expect(accuracy.locator('[data-pl=user_1] [data-k=playlist-cache]')).to_have_text('Online')
+        accuracy.goto(url + '#/p/user_1')
+        removed = copy.deepcopy(complete)
+        removed['spotifyOffline'].update(playlists={}, partials={}, previews={}, jobs={})
+        accuracy.evaluate('(s) => window.offlinePeer.onmessage("/j/web/output/state", JSON.stringify(s))', removed)
+        expect(accuracy.locator('[data-k=offline-tracks] li')).to_have_count(0)
+        assert not accuracy.evaluate('Object.keys(localStorage).some(k => k.includes("account-one:"))')
+        checks.append('explicit unavailable flags and zero counts override old progress; removing a copy clears cached rows and disk metadata')
         assert not errors, errors
         browser.close()
     server.shutdown()

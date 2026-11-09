@@ -2630,10 +2630,10 @@ index 0000000..d976f07
 +}
 diff --git a/spotify_player/src/downloads/managed_items.rs b/spotify_player/src/downloads/managed_items.rs
 new file mode 100644
-index 0000000..27b08be
+index 0000000..e5818dd
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed_items.rs
-@@ -0,0 +1,322 @@
+@@ -0,0 +1,334 @@
 +//! Public cache state and covers, plus explicit single-title downloads/playback.
 +//! Audio, keys and filesystem paths stay in the private native store.
 +use super::{
@@ -2729,8 +2729,15 @@ index 0000000..27b08be
 +                decorate(&mut entry["tracks"], &all, &mut artwork);
 +                if let Ok(index) = load_index(paths, &id) {
 +                    if let Some(saved) = index.playlists.get(uri) {
-+                        entry["cached_tracks"] =
-+                            saved.tracks.iter().filter(|t| t.bytes > 0).count().into();
++                        entry["cached_tracks"] = saved
++                            .tracks
++                            .iter()
++                            .filter(|t| {
++                                all.iter()
++                                    .any(|(library, _)| library.cached_track(&t.uri).is_some())
++                            })
++                            .count()
++                            .into();
 +                        entry["skipped_tracks"] =
 +                            saved.tracks.iter().filter(|t| t.bytes == 0).count().into();
 +                    }
@@ -2760,7 +2767,12 @@ index 0000000..27b08be
 +                    continue;
 +                };
 +                let library = Library::new(dir.path());
-+                let tracks = library.tracks().unwrap_or_default();
++                let tracks: Vec<_> = library
++                    .tracks()
++                    .unwrap_or_default()
++                    .into_iter()
++                    .filter(|t| library.cached_track(&t.uri).is_some())
++                    .collect();
 +                if !tracks.is_empty() {
 +                    partials.insert(
 +                        uri,

@@ -1373,9 +1373,10 @@
       var still = gotState && nothingNew(data);
       var posOnly = still && Object.keys(data).length === 1 && !!data.audio;
       var wasTesting = obj(S.audio.volume_test).active;
+      var previousOffline = S.spotifyOffline;
       mergeState(data);
       if (wasTesting && !obj(S.audio.volume_test).active && obj(S.audio.volume_test).error) toast(t('volume_test_failed'), 'error');
-      if (data.spotifyOffline) offlineTitleAccount(obj(S.spotifyOffline));
+      if (data.spotifyOffline) { offlineTitleAccount(obj(S.spotifyOffline)); offlineTitleChanged(previousOffline, obj(S.spotifyOffline)); }
       if (posOnly) return;
       waiters = waiters.filter(function (w) { return !w(data); });
       if (!autoChecked && S.device.openjooki) { autoChecked = true; resumeUpdate(function (running) { if (!running) setTimeout(checkUpdate, 1500); }); }
@@ -2594,6 +2595,17 @@
       });
     } catch (e) {}
   }
+  function offlineTitleChanged(before, after) {
+    if (!before || before.account_id !== after.account_id) return;
+    var old = obj(before.playlists), fresh = obj(after.playlists), account = after.account_id || '';
+    Object.keys(old).concat(Object.keys(fresh)).filter(function (uri, i, a) { return a.indexOf(uri) === i; }).forEach(function (uri) {
+      if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready) return;
+      var prefix = account + ':' + uri + ':';
+      Object.keys(offlinePreviewCache).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlinePreviewCache[k]; });
+      offlinePreviewAsked = {};
+      try { var disk = offlineTitlePrefix() + prefix; Object.keys(localStorage).forEach(function (k) { if (k.indexOf(disk) === 0) localStorage.removeItem(k); }); } catch (e) {}
+    });
+  }
   function offlineTitleKey(uri, offset) { return offlineTitlePrefix() + obj(S.spotifyOffline).account_id + ':' + uri + ':' + offset; }
   function offlineLoadTitles(uri, offset, snapshot) {
     try {
@@ -2620,7 +2632,7 @@
   function spotifyStoredTrack(p, track) {
     var o = obj(S.spotifyOffline), snap = obj(obj(o.playlists)[p.spotify.uri]), result = snap.ready && track.cached === undefined && !track.problem ? Object.assign({}, track, { cached: true }) : track;
     [arr(snap.tracks), arr(obj(o.download).uri === p.spotify.uri ? obj(o.download).tracks : [])].forEach(function (list) {
-      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (t.cached || t.bytes > 0)) result = Object.assign({}, track, { cached: true, image: t.image || track.image }); });
+      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (t.cached === true || (t.cached === undefined && t.bytes > 0))) result = Object.assign({}, track, { cached: true, image: t.image || track.image }); });
     });
     return result;
   }
@@ -2633,7 +2645,7 @@
     }
     if (!o.available) return null;
     var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]);
-    var job = obj(obj(o.jobs)[p.spotify.uri]), count = Number(snap.cached_tracks || partial.cached_tracks) || (snap.ready ? Number(snap.total_tracks) : Number(job.completed)) || 0;
+    var job = obj(obj(o.jobs)[p.spotify.uri]), count = snap.cached_tracks !== undefined ? Number(snap.cached_tracks) : partial.cached_tracks !== undefined ? Number(partial.cached_tracks) : (snap.ready ? Number(snap.total_tracks) : Number(job.completed) - Number(job.skipped || 0)) || 0;
     var total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
     var downloading = obj(o.download).uri === p.spotify.uri && offlineBusy(), mode = obj(o.modes)[p.id] || 'online';
     return h('div', { class: 'pl-offline-status' },

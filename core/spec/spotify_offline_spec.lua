@@ -203,6 +203,16 @@ describe("Spotify offline snapshots and routing", function()
     assert_eq(r.state.playback.now.service, "SPOTIFY_OFFLINE")
     assert_eq(r.state.spotify_offline.modes.user_1, "online")
   end)
+  it("clears stale title availability and completed jobs when a saved copy is removed", function()
+    local d = fixture()
+    d.spotify_offline.previews = { [URI] = { phase = "complete", tracks = { { cached = true } } } }
+    d.spotify_offline.jobs = { [URI] = { phase = "complete", completed = 2 } }
+    d.spotify_offline.download = { uri = URI, phase = "complete", completed = 2 }
+    d.spotify_offline_int.preview = { uri = URI }
+    apply(d, offline.on_catalog(d, { text = json.encode({ version = 1, account_ready = true, account_id = "account-one", playlists = {} }) }))
+    assert_nil(d.spotify_offline.previews[URI]); assert_nil(d.spotify_offline.jobs[URI])
+    assert_nil(d.spotify_offline.download); assert_nil(d.spotify_offline_int.preview)
+  end)
   it("does not republish an unchanged catalog and hides internal state from the API", function()
     local d = fixture(); local text = json.encode({ version = 1, account_ready = true, account_id = "test", playlists = {}, used_bytes = 3 })
     apply(d, offline.on_catalog(d, { text = text }))

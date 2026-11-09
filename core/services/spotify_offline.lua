@@ -234,11 +234,15 @@ function offline.on_catalog(doc, ev)
   pub.catalog_loaded = true
   pub.account_ready, pub.account_id = data.account_ready == true, data.account_id
   item_support.assets(doc, int, data, true)
-  for uri, entry in pairs(data.playlists) do
-    local old = (pub.playlists or {})[uri]
-    if old and old.snapshot_id ~= entry.snapshot_id then
+  for uri, old in pairs(pub.playlists or {}) do
+    local entry = data.playlists[uri]
+    if not entry or old.snapshot_id ~= entry.snapshot_id or old.ready ~= entry.ready then
       if pub.previews then pub.previews[uri] = nil end
       if int.preview and int.preview.uri == uri then int.preview, int.preview_text = nil, nil end
+      if not entry or not entry.ready then
+        if pub.download and pub.download.uri == uri and not busy(pub) then pub.download = nil end
+        if pub.jobs then pub.jobs[uri] = nil end
+      end
     end
   end
   pub.playlists, pub.partials = data.playlists, data.partials or {}

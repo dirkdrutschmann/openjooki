@@ -172,3 +172,32 @@ The final .5 installed-browser check passes the unavailable markers, explicit
 Krokodil song list, without JavaScript errors. The paused-child application
 restart leaves HTTP reachable. Both Internet routes and all one-shot boot files
 were restored/removed after the offline experiment.
+
+
+## 2.5.1-offline: individual files and current playlist copies
+
+This version follows upstream 2.5.1 and changes the earlier strict download policy above:
+unavailable audio members are recorded as skipped, and the next member is downloaded.
+A completed copy contains the playable members in their original source order; source
+positions are retained for selecting a particular song. Authentication, quota, rate-limit
+and connectivity failures still stop the job. A refreshed generation follows current
+Spotify membership, so removed songs are absent from the new playable copy. Previous
+generations remain available until the replacement is committed.
+
+Each title has a cache chip and Play. The single-title operation validates the selected
+URI and original position against the current Spotify playlist, downloads only that song,
+and optionally starts it after completion. It does not change the playlist's persistent
+playback mode or claim the entire playlist is saved. Playback verifies the local file;
+public availability flags and saved counts also check that the cached file exists.
+Removing a copy invalidates old browser availability flags and completed-job counters.
+
+Title pages persist in a bounded browser cache separated by device and account and
+refresh in the background. Local album covers use opaque, account-scoped HTTP routes;
+filesystem paths, credentials and encryption keys remain private. Playlist card footers
+reserve space for long labels beside Play.
+
+Validation before deployment: 475 Lua specs, 71 native SDK tests, minimal-feature
+Clippy, the MIPS build, 16 offline browser checks, package/source-profile checks and the
+existing volume, backend and Spotify regression suites. The player-stability test now
+disables the night schedule explicitly: otherwise an active automatic sleep timer made
+its position-only measurement depend on the runner's wall clock.
