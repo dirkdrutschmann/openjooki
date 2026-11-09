@@ -9,7 +9,7 @@ set -e
 cd "$(dirname "$0")/.."
 V="$1"; TITLE="$2"; SUMMARY="$3"
 [ -n "$V" ] && [ -n "$TITLE" ] && [ -n "$SUMMARY" ] || { echo "usage: $0 <version> \"<title>\" \"<one-line summary for the README>\""; exit 1; }
-echo "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "not a version: $V"; exit 1; }
+echo "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(\+[A-Za-z0-9.-]+)?$' || { echo "not a version: $V"; exit 1; }
 grep -q '^## Next release$' CHANGELOG.md || { echo "CHANGELOG.md has no '## Next release' section to turn into $V"; exit 1; }
 OLD=$(sed -n "s/^  var VERSION = '\([^']*\)';/\1/p" tools/openjooki/webui/app.js)
 [ -n "$OLD" ] || { echo "no VERSION in app.js"; exit 1; }

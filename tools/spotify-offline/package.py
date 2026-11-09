@@ -61,7 +61,7 @@ def assemble(work, output, version):
         for name in jooki.WEBUI_FILES:
             data = (web / name).read_bytes()
             if name in ('index.html', 'app.js'):
-                data = data.replace(('?v=' + BASE_VERSION).encode(), ('?v=' + version).encode())
+                data = data.replace(('?v=' + BASE_VERSION + '"').encode(), ('?v=' + version + '"').encode())
             if name == 'app.js':
                 data = data.replace(("var VERSION = '" + BASE_VERSION + "';").encode(), ("var VERSION = '" + version + "';").encode())
             files['webui/' + name] = data

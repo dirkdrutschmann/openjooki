@@ -466,8 +466,8 @@ function playback.on_audio(doc, ev)
   local pb = pb_of(doc)
   -- Spotify/Deezer plays: late reports of the local track it stopped must not touch its state
   if is_streaming(pb) then return nil end
-  -- The engine could not play a network URI. A playlist radio used to keep a stale PLAYING state,
-  -- even though audio_ctrl had rejected its URL (for example HTTPS without the GIO TLS module).
+  -- The engine could not play a network URI. A playlist radio used to keep a stale PLAYING state
+  -- even though audio_ctrl had rejected its URL.
   if kind == "error" then
     if not (pb.now and (pb.now.service == "UPNP" or pb.now.service == "STREAM")) or pb.state == "idle" then return nil end
     pb.state, pb.position_ms = "idle", 0

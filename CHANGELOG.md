@@ -1,5 +1,11 @@
 # OpenJooki — Changelog
 
+## OpenJooki 2.5.1+offline (10 November 2026) — HTTPS, audiobooks and Spotify offline
+- **HTTPS radio streams.** The Jooki now has its GIO GnuTLS backend and can validate certificates with the system trust store. HTTP streams continue to work; failed streams leave playback in a stopped state.
+- **Audiobook library.** Audiobook tracks are grouped in the library tree. Multiple tracks can be selected, added to playlists or deleted from every playlist in one action.
+- **Spotify offline playback.** This fork bundles the current offline player package, which remains experimental and requires a separate Spotify Premium sign-in.
+- The release also contains the upstream 2.5.1 improvements and the radio stream recovery fix.
+
 ## OpenJooki 2.5.1 (9 November 2026) — Back to the start
 - **Back to the start, from the Jooki itself.** A new choice for the track knob, in *Settings → Jooki buttons*: held to the left for three seconds, the playlist starts again from its first song, and an audiobook forgets its place. Short turns stay next and previous. Off by default (#40, thank you aosavi).
 - **A tidier Settings page.** A short list of subjects, the details behind each one, plain icons instead of coloured tiles, two columns on a computer. Nothing is gone: *Volume and headphones*, *Playback*, *Jooki buttons* and *Advanced* hold what the long list had.

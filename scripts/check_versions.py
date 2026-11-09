@@ -75,7 +75,7 @@ def main():
     version = app.group(1) if app else None
     if not version:
         problems.append("app.js: no VERSION line")
-    keys = re.findall(r"\?v=([0-9A-Za-z.\-]+)", read("tools/openjooki/webui/index.html"))
+    keys = re.findall(r"\?v=([0-9A-Za-z.+\-]+)", read("tools/openjooki/webui/index.html"))
     if len(keys) != 3 or set(keys) != {version}:
         problems.append("index.html: cache keys %r, expected three times %r" % (keys, version))
     readme = re.search(r"^\*\*New in ([^:]+):\*\*", read("README.md"), re.M)

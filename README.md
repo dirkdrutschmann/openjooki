@@ -43,8 +43,8 @@ Free, made by a parent, not affiliated with Muuselabs / Jooki.
 | The lights, the battery, the charger | **[What they mean](guide/lights-and-battery.md)** |
 | Anything else | **[Questions](guide/questions.md)** |
 
-**New in 2.5.1:** the track knob can bring a playlist back to its start, and a tidier Settings page.
-2.5.0: German, all lights off, a Test button for the night volume, a random first song, and the page can turn the speaker down.
+**New in 2.5.1+offline:** HTTPS radio streams, the audiobook library and experimental Spotify offline playback.
+2.5.1: the track knob can bring a playlist back to its start, and a tidier Settings page.
 [All the changes](CHANGELOG.md)
 
 ---
