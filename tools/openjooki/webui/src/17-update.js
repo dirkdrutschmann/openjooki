@@ -27,7 +27,8 @@
         var d = null;
         try { d = JSON.parse(txt); } catch (e) {}
         if (d && !d.pending) {
-          if (d.error || !d.version) { upd.state = 'offline'; }
+          if (d.error === 'no_release') { upd.state = 'no_release'; }
+          else if (d.error || !d.version) { upd.state = 'offline'; }
           else { upd.latest = String(d.version); upd.state = 'checked'; }
           render(); return;
         }
@@ -135,7 +136,7 @@
     var avail = upd.state === 'checked' && updateAvailable();
     var bad = upd.state === 'failed' || upd.state === 'offline';
     var look = avail ? ['up', 'accent'] : bad ? ['x', 'danger'] : upd.state === 'checked' ? ['check', 'ok'] : ['up', 'muted'];
-    var title = upd.state === 'checking' ? t('upd_checking') : upd.state === 'offline' ? t('upd_offline') : upd.state === 'failed' ? t('upd_failed')
+    var title = upd.state === 'checking' ? t('upd_checking') : upd.state === 'no_release' ? t('upd_no_release') : upd.state === 'offline' ? t('upd_offline') : upd.state === 'failed' ? t('upd_failed')
       : avail ? t('upd_available', upd.latest) : upd.state === 'checked' ? t('upd_uptodate') : 'OpenJooki ' + (cur || '—');
     return [
       h('div', { class: 'statuscard', 'data-k': 'updcard' }, h('div', { class: 'bigico ' + look[1] }, icon(look[0])),

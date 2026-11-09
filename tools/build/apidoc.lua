@@ -40,6 +40,7 @@ local DESC = {
   ["playlist.new"] = "Creates a playlist (title trimmed, ≤ 100 chars; optional audiobook flag and character).",
   ["playlist.delete"] = "Deletes a playlist; its tracks appear in Unused. TRASH and system cannot be deleted.",
   ["playlist.update"] = "Renames / links a character (star, or false to unlink) / reorders or removes tracks / sets audiobook. Playback modes override Settings; `random_start` accepts true, false or `\"settings\"` to inherit. On TRASH only `tracks` is allowed: files really unused are deleted.",
+  ["track.delete"] = "Permanently deletes local files and removes the selected tracks from every playlist. Protected by the parent code.",
   ["playlist.add_track"] = "Appends a known track.",
   ["playlist.add_stream"] = "Adds a web radio (http/https URL).",
   ["token.edit"] = "Names (or clears the name of) a physical token; optional image.",

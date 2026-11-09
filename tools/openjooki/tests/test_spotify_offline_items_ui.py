@@ -29,7 +29,8 @@ def main():
               'duration_ms': 90000, 'cached': i == 0, 'image': IMAGE if i == 0 else None} for i, uri in enumerate(TRACKS)]
     state = {'device': {'id': 'fixture-device'},
              'db': {'playlists': {'user_1': {'title': 'Anton Fuchs mit langem Namen', 'tracks': [], 'spotify': {'uri': URI}},
-                                  'user_2': {'title': 'Gute Nacht, kleiner Bär', 'audiobook': True, 'tracks': ['file_1']}},
+                                  'user_2': {'title': 'Gute Nacht, kleiner Bär', 'audiobook': True, 'tracks': ['file_1']},
+                                  'user_3': {'title': 'Auch hier', 'tracks': ['file_1']}},
                     'tracks': {'file_1': {'filename': '/music/chapter.mp3', 'title': 'Kapitel'}}, 'tokens': {}},
              'audio': {'config': {}, 'playback': {'state': 'STOPPED'}, 'nowPlaying': {}},
              'spotifyOffline': {'available': True, 'account_ready': True, 'metadata_ready': True, 'catalog_loaded': True,
@@ -55,7 +56,7 @@ def main():
         page.goto(url + '#/p/user_1')
         rows = page.locator('[data-k=offline-tracks] li')
         expect(rows).to_have_count(3)
-        expect(rows.nth(0).locator('[data-track-cache]')).to_be_disabled()
+        expect(rows.nth(0).locator('[data-track-remove]')).to_be_enabled()
         expect(rows.nth(0)).to_contain_text('Offline gespeichert')
         expect(rows.nth(1)).to_contain_text('Online')
         expect(rows.nth(0).locator('img')).to_have_attribute('src', IMAGE)
@@ -72,6 +73,11 @@ def main():
         rows.nth(0).locator('[data-track-play]').click()
         assert sent('OJ_OFFLINE_PLAY')['payload']['trackUri'] == TRACKS[0]
         checks.append('cache chip downloads one exact title; Play caches an uncached selection and directly plays a stored selection')
+        rows.nth(0).locator('[data-track-remove]').click()
+        page.get_by_role('dialog').get_by_role('button', name='Download entfernen', exact=True).click()
+        assert sent('OJ_OFFLINE_REMOVE')['payload'] == {'playlistId': 'user_1', 'trackUri': TRACKS[0], 'code': '1234'}
+        expect(page.get_by_role('button', name='Download entfernen', exact=True)).to_be_visible()
+        checks.append('saved-song chip confirms individual removal and a partial playlist also offers whole-copy removal')
 
         page.goto(url + '#/')
         for width in (390, 1440):
@@ -80,11 +86,27 @@ def main():
                 card = page.locator('[data-pl="%s"]' % playlist)
                 expect(card).to_be_visible()
                 assert card.evaluate('(c) => { const t=c.querySelector(".meta").getBoundingClientRect(), b=c.querySelector(".play").getBoundingClientRect(); return t.right <= b.left && t.bottom <= c.getBoundingClientRect().bottom; }')
-            expect(page.locator('[data-pl=user_1]')).to_contain_text('1/3 offline')
-            expect(page.locator('[data-pl=user_2]')).to_contain_text('1/1 offline')
+            expect(page.locator('[data-pl=user_1] [data-k=playlist-cache]')).to_have_attribute('title', '1/3 offline')
+            expect(page.locator('[data-pl=user_2] [data-k=playlist-cache]')).to_have_attribute('title', 'Offline verfügbar')
+            expect(page.locator('[data-pl=user_1] .playlist-service')).to_have_attribute('title', 'Spotify-Wiedergabeliste')
+            assert page.locator('[data-pl=user_1] .meta').inner_text() == ''
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
             page.screenshot(path=str(args.out / ('playlist-cards-%d.png' % width)), full_page=True)
         checks.append('German footer text and cache badges cannot overlap Play at 390 or 1440 px, including local books')
+
+        page.goto(url + '#/library')
+        expect(page.locator('.lib-folder')).to_have_count(1)
+        page.locator('.lib-folder summary').click()
+        local = page.locator('[data-track=file_1]')
+        expect(local).to_be_visible()
+        local.locator('input.check').check()
+        page.locator('[data-k=delete-tracks]').click()
+        dialog = page.get_by_role('dialog')
+        expect(dialog).to_contain_text('aus allen Wiedergabelisten')
+        dialog.get_by_role('button', name='Löschen', exact=True).click()
+        assert sent('TRACK_DELETE')['payload'] == {'trackIds': ['file_1'], 'code': '1234'}
+        assert sent('PLAYLIST_UPDATE') is None
+        checks.append('audiobook tree tracks can be permanently deleted from the library, with confirmation that every playlist reference is removed')
 
         # A fresh page gets no metadata from the peer. Only its persisted, account-bound cache can supply titles.
         cold = copy.deepcopy(state)
@@ -111,7 +133,7 @@ def main():
         accuracy.goto(url + '#/p/user_1')
         expect(accuracy.locator('[data-track-cache]').nth(1)).to_be_enabled()
         accuracy.goto(url + '#/')
-        expect(accuracy.locator('[data-pl=user_1] [data-k=playlist-cache]')).to_have_text('Online')
+        expect(accuracy.locator('[data-pl=user_1] [data-k=playlist-cache]')).to_have_attribute('title', 'Online')
         accuracy.goto(url + '#/p/user_1')
         removed = copy.deepcopy(complete)
         removed['spotifyOffline'].update(playlists={}, partials={}, previews={}, jobs={})
@@ -151,6 +173,24 @@ def main():
         expect(fp.locator('[data-k=offline-filter-empty]')).to_be_visible()
         expect(fp.get_by_role('button', name='Weiter', exact=True)).to_be_enabled()
         checks.append('unavailable songs start hidden; the remembered filter reveals gray rows with no actions, preserves source indexes and permits paging past empty pages')
+        queued = copy.deepcopy(state)
+        queued['spotifyOffline'].update(queue_progress={'completed': 10, 'total': 10, 'skipped': 2},
+            download={'uri':URI, 'phase':'downloading','completed':2,'total':3},
+            queue=[{'playlist':'user_3','uri':'spotify:playlist:'+'3'*22,'title':'More songs','total':4}])
+        qp=page_for(queued);qp.goto(url+'#/p/user_1')
+        expect(qp.locator('[data-k=offline-progress]')).to_have_count(1)
+        expect(qp.locator('[data-k=offline-progress] b')).to_have_text('12 / 17')
+        expect(qp.locator('details.offline-queue')).to_have_count(0)
+        expect(qp.locator('.offline-storage')).to_contain_text('Offline-Speicher: —')
+        expect(qp.locator('text=Das Speicherbudget richtet sich')).to_have_count(0)
+        checks.append('one compact global progress row combines completed, active and appended work; unknown storage has no false zero or budget explanation')
+        update = copy.deepcopy(state);update['device']['openjooki']='2.5.1'
+        up=page_for(update);up.route('**/oj-latest.json*',lambda r:r.fulfill(json={'error':'no_release'}))
+        up.goto(url+'#/settings/update')
+        up.locator('[data-k=updcheck]').click()
+        expect(up.locator('[data-k=updcard]')).to_contain_text('kein automatisches Update veröffentlicht',timeout=10000)
+        expect(up.locator('[data-k=updcard] .danger')).to_have_count(0)
+        checks.append('a missing published update is explained without a false GitHub connectivity error')
         assert not errors, errors
         browser.close()
     server.shutdown()

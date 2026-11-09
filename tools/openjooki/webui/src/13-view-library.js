@@ -83,6 +83,7 @@
     var loose = all.filter(function (k) { return !grouped[k]; });
     Object.keys(ui.sel).forEach(function (k) { if (all.indexOf(k) < 0) delete ui.sel[k]; });
     var chosen = all.filter(function (k) { return ui.sel[k]; });
+    var deletable = chosen.filter(function (k) { return S.db.tracks[k] && !S.db.tracks[k].isUrl; });
     var nAll = Object.keys(S.db.tracks).length;
     var allChosen = all.length > 0 && chosen.length === all.length;
     function bookFolder(book) {
@@ -117,12 +118,11 @@
       chosen.length ? h('div', { class: 'card selbar' },
         h('span', { class: 'grow small' }, t('selected', chosen.length)),
         h('button', { class: 'btn primary', onclick: function () { addToPlaylistModal(chosen); } }, t('add_to')),
-        tab === 'unused' ? h('button', { class: 'btn danger', onclick: function () {
-          confirmBox(t('delete_forever_q', chosen.length), t('delete_forever_text'), t('delete'), true).then(function (ok) {
+        deletable.length ? h('button', { class: 'btn danger', 'data-k': 'delete-tracks', onclick: function () {
+          confirmBox(t('delete_forever_q', deletable.length), t('delete_forever_text'), t('delete'), true).then(function (ok) {
             if (!ok) return;
-            var keep = unusedIds().filter(function (x) { return chosen.indexOf(x) < 0; });
-            send('PLAYLIST_UPDATE', { playlist: { id: 'TRASH', tracks: keep } });
-            ui.sel = {}; toast(t('deleted'));
+            send('TRACK_DELETE', { trackIds: deletable });
+            ui.sel = {}; render(); toast(t('deleted'));
           });
         } }, icon('trash'), t('delete_forever')) : null) : null
     ];

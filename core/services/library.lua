@@ -275,7 +275,8 @@ end
 --- Remove a track from every playlist and the library; returns its filename.
 function ops.track_delete(lib, id)
   local t = lib.tracks[id]
-  if not t then return nil, { code = "not_found", field = "id", message = "unknown track" } end
+  if not t then return nil, { code = "not_found", field = "trackId", message = "unknown track" } end
+  if t.isUrl then return nil, { code = "read_only", field = "trackId", message = "radio streams are not files" } end
   for _, p in pairs(lib.playlists) do
     local kept = {}
     for _, x in ipairs(p.tracks or {}) do if x ~= id then kept[#kept + 1] = x end end
@@ -377,6 +378,38 @@ local function mutate(doc, which, fn)
 end
 library.mutate = mutate
 
+--- Permanently delete selected local files, removing each from every playlist first.
+function library.delete_tracks(doc, ids)
+  if type(ids) ~= "table" or #ids < 1 or #ids > 2000 then
+    return nil, { code = "invalid_argument", field = "trackIds", message = "expected 1–2000 track ids" }
+  end
+  return mutate(doc, { playlists = true, tracks = true }, function(lib)
+    local removed, seen = {}, {}
+    for _, id in ipairs(ids) do
+      if type(id) ~= "string" or #id < 1 or #id > 80 then
+        return nil, { code = "invalid_argument", field = "trackIds", message = "invalid track id" }
+      end
+      if not seen[id] then
+        seen[id] = true
+        local track = lib.tracks[id]
+        local filename, err = ops.track_delete(lib, id)
+        if err then return nil, err end
+        if filename then
+          local shared = false
+          for _, other in pairs(lib.tracks) do
+            if other.filename == filename then shared = true break end
+          end
+          if not shared then removed[#removed + 1] = filename end
+        end
+        if track.hasImage and id:match("^%x+$") then
+          removed[#removed + 1] = util.data_dir(doc) .. "/artwork/" .. id .. ".jpg"
+        end
+      end
+    end
+    return true, { removed_files = removed }
+  end)
+end
+
 local S = {}   -- schemas
 S.id = { type = "string", minLength = 1, maxLength = 80 }
 S.playlist_new = { type = "object", properties = { title = { type = "string", maxLength = 200 }, audiobook = { type = "boolean" }, star = { type = "string", maxLength = 64 } }, additionalProperties = false }
@@ -385,6 +418,8 @@ S.playlist_update = { type = "object", required = { "id" }, additionalProperties
   properties = { id = S.id, title = { type = "string", maxLength = 200 }, star = { type = { "string", "boolean" } }, audiobook = { type = "boolean" }, resume = { type = "boolean" },
                  shuffle_mode = { type = { "boolean", "string" } }, random_start = { type = { "boolean", "string" }, enum = { true, false, "settings" } }, repeat_mode = { type = { "integer", "string" } },
                  tracks = { type = "array", items = { type = "string" }, maxItems = 2000 } } }
+S.track_delete = { type = "object", required = { "trackIds" }, additionalProperties = false,
+  properties = { trackIds = { type = "array", minItems = 1, maxItems = 2000, items = S.id } } }
 S.add_track = { type = "object", required = { "id", "trackId" }, properties = { id = S.id, trackId = S.id }, additionalProperties = false }
 S.add_stream = { type = "object", required = { "id", "url" }, properties = { id = S.id, url = { type = "string", maxLength = 500 }, title = { type = "string", maxLength = 200 } }, additionalProperties = false }
 S.token_edit = { type = "object", required = { "tagId" }, properties = { tagId = { type = "string", pattern = "^%x+$", minLength = 14, maxLength = 14 }, name = { type = { "string", "boolean" }, maxLength = 100 }, image = { type = { "string", "boolean" } } }, additionalProperties = false }
@@ -412,6 +447,7 @@ function library.install(api, dispatch)
   api.command("playlist.update", S.playlist_update, function(doc, p)
     return mutate(doc, { playlists = true, tracks = true }, function(lib) return ops.playlist_update(lib, p) end)
   end)
+  api.command("track.delete", S.track_delete, function(doc, p) return library.delete_tracks(doc, p.trackIds) end)
   api.command("playlist.add_track", S.add_track, function(doc, p)
     return mutate(doc, { playlists = true }, function(lib) return ops.playlist_add_track(lib, p.id, p.trackId) end)
   end)

@@ -133,7 +133,13 @@ echo ok]], "mqtt_lan", (a.on == true) and "on" or "off" } end, background = true
                              if not is_update_url(a.url) then return nil, "bad url" end
                              return { "sh", "-c", [[
 O="$1"; U="$2"; echo '{"pending":true}' > "$O"
-if curl -fsSL --max-time 30 "$U" -o "$O.tmp"; then mv "$O.tmp" "$O"; else echo '{"error":"offline"}' > "$O"; fi]], "update_check", a.out, a.url } end, background = true },
+if status_code=$(curl -sSL --max-time 30 -w '%{http_code}' "$U" -o "$O.tmp"); then
+  case "$status_code" in
+    200) mv "$O.tmp" "$O";;
+    404) echo '{"error":"no_release"}' > "$O"; rm -f "$O.tmp";;
+    *) echo '{"error":"offline"}' > "$O"; rm -f "$O.tmp";;
+  esac
+else echo '{"error":"offline"}' > "$O"; rm -f "$O.tmp"; fi]], "update_check", a.out, a.url } end, background = true },
   update_start   = { argv = function(a) if not (is_path(a.status) and is_path(a.link)) then return nil, "bad path" end
                              if not is_update_url(a.url) then return nil, "bad url" end
                              return { "sh", "-c", [[

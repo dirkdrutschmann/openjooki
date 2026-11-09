@@ -29,26 +29,37 @@ local function playlist(doc, id)
 end
 local function write_queue(doc, pub)
   return { kind = "files.write", path = offline.paths(doc).queue, doc = { account_id = pub.account_id, items = pub.queue or {}, jobs = pub.jobs or {},
-    active = busy(pub) and { playlist = pub.download.playlist, uri = pub.download.uri, index = pub.download.track_index, track_uri = pub.download.track_uri } or nil, paused = pub.queue_paused }, version = 1 }
+    active = busy(pub) and { playlist = pub.download.playlist, uri = pub.download.uri, index = pub.download.track_index, track_uri = pub.download.track_uri, total = pub.download.total } or nil, paused = pub.queue_paused, progress = pub.queue_progress }, version = 1 }
+end
+local function queue_progress(pub)
+  pub.queue_progress = pub.queue_progress or { completed = 0, total = 0, skipped = 0 }
+  return pub.queue_progress
 end
 local function restore_queue(doc, pub, int)
   if not int.queue_loaded or not pub.catalog_loaded then return end
   if int.queue_account == pub.account_id and not int.restore_pending then return end
-  pub.queue, pub.jobs, pub.queue_paused = {}, {}, nil
+  pub.queue, pub.jobs, pub.queue_paused, pub.queue_progress = {}, {}, nil, nil
   local saved = int.saved_queue
   if saved and saved.account_id == pub.account_id and pub.account_id then
     local seen = {}
-    local function add(item)
+    local function add(item, resumed)
       if type(item) ~= "table" then return end
       local p = playlist(doc, item.playlist)
       local key = tostring(item.uri) .. ":" .. tostring(item.track_uri or "")
       local valid = not item.track_uri or (item_support.valid_uri(item.track_uri) and type(item.index) == "number" and item.index >= 1 and item.index <= 10000 and item.index % 1 == 0)
       if p and p.spotify.uri == item.uri and valid and not seen[key] and #pub.queue < 32 then
-        pub.queue[#pub.queue + 1] = { playlist = item.playlist, uri = item.uri, title = p.title, index = item.index, track_uri = item.track_uri }
+        pub.queue[#pub.queue + 1] = { playlist = item.playlist, uri = item.uri, title = p.title, index = item.index, track_uri = item.track_uri, total = tonumber(item.total), resumed = resumed }
         seen[key] = true
       end
     end
-    add(saved.active)
+    if type(saved.progress) == "table" then
+      local p = {}; for _, k in ipairs({ "completed", "total", "skipped" }) do
+        local n = saved.progress[k]; p[k] = type(n) == "number" and n >= 0 and n <= 1000000000 and math.floor(n) or 0
+      end
+      p.last = type(saved.progress.last) == "string" and saved.progress.last:sub(1, 128) or nil
+      pub.queue_progress = p
+    end
+    add(saved.active, true)
     for _, item in ipairs(saved.items or {}) do add(item) end
     pub.jobs = type(saved.jobs) == "table" and saved.jobs or {}
     pub.queue_paused = saved.paused
@@ -63,7 +74,7 @@ local function audio_active(doc)
   return pb.now and pb.now.service == SERVICE and (pb.state == "playing" or pb.state == "starting")
 end
 local function kick_queue(doc, pub, int, cmds, now)
-  if int.restore_pending or pub.queue_paused or busy(pub) or not pub.account_ready or audio_active(doc) or ((pub.auth or {}).phase == "requested" or (pub.auth or {}).phase == "working" or (pub.auth or {}).phase == "checking") then return end
+  if int.restore_pending or int.startup_pending or pub.queue_paused or busy(pub) or not pub.account_ready or audio_active(doc) or ((pub.auth or {}).phase == "requested" or (pub.auth or {}).phase == "working" or (pub.auth or {}).phase == "checking") then return end
   pub.queue, pub.jobs = pub.queue or {}, pub.jobs or {}
   while #pub.queue > 0 do
     local item = table.remove(pub.queue, 1)
@@ -72,7 +83,7 @@ local function kick_queue(doc, pub, int, cmds, now)
       int.next_id = (int.next_id or 0) + 1
       int.job_request = string.format("%.0f", (now or 0) * 1000) .. "-" .. int.next_id
       int.job_text, int.job_process, int.job_wait = nil, nil, 0
-      pub.download = { uri = item.uri, playlist = item.playlist, phase = "resolving", completed = 0, total = 0, track_uri = item.track_uri, track_index = item.index }
+      pub.download = { uri = item.uri, playlist = item.playlist, phase = "resolving", completed = 0, total = item.total or 0, track_uri = item.track_uri, track_index = item.index }
       pub.jobs[item.uri] = job_summary(pub.download)
       cmds[#cmds + 1] = write_queue(doc, pub)
       cmds[#cmds + 1] = action(item.track_uri and "cache_track" or "sync", { uri = item.uri, request = int.job_request, track_uri = item.track_uri, index = item.index and item.index - 1 })
@@ -90,7 +101,7 @@ local function enabled(doc) return (doc.config or {}).spotify_offline_enabled ==
 function offline.on_boot(doc)
   if not enabled(doc) then return nil end
   local p = offline.paths(doc)
-  local int = internal(doc); int.restore_pending = true
+  local int = internal(doc); int.restore_pending, int.startup_pending = true, true
   return result(current(doc), int, {
     { kind = "files.stat", path = (doc.config or {}).spotify_offline_binary or p.root .. "/current/spotify_player", reply = "offline.binary" },
     read(p.modes, "offline.modes"), read(p.queue, "offline.queue"),
@@ -234,9 +245,10 @@ function offline.on_catalog(doc, ev)
   pub.catalog_loaded = true
   pub.account_ready, pub.account_id = data.account_ready == true, data.account_id
   item_support.assets(doc, int, data, true)
-  for uri, old in pairs(pub.playlists or {}) do
-    local entry = data.playlists[uri]
-    if not entry or old.snapshot_id ~= entry.snapshot_id or old.ready ~= entry.ready then
+  local previous = copy(pub.partials or {}); for uri, v in pairs(pub.playlists or {}) do previous[uri] = v end
+  for uri, old in pairs(previous) do
+    local entry = data.playlists[uri] or (data.partials or {})[uri]
+    if not entry or old.snapshot_id ~= entry.snapshot_id or old.ready ~= entry.ready or old.cached_tracks ~= entry.cached_tracks then
       if pub.previews then pub.previews[uri] = nil end
       if int.preview and int.preview.uri == uri then int.preview, int.preview_text = nil, nil end
       if not entry or not entry.ready then
@@ -261,12 +273,29 @@ function offline.on_catalog(doc, ev)
   return r
 end
 function offline.on_job(doc, ev)
-  local int = internal(doc)
-  if not ev.text or ev.text == int.job_text then return nil end
+  local int, pub = internal(doc), current(doc)
+  if int.startup_pending and not pub.catalog_loaded then return nil end
+  if not ev.text then
+    if int.startup_pending then int.startup_pending = nil; return result(pub, int) end
+    return nil
+  end
+  if ev.text == int.job_text then return nil end
   local ok, data = pcall(json.decode, ev.text)
-  if not (ok and type(data) == "table" and data.version == 1 and type(data.uri) == "string") then return nil end
-  local pub = current(doc)
-  if data.account_id ~= nil and data.account_id ~= pub.account_id then return nil end
+  if not (ok and type(data) == "table" and data.version == 1 and type(data.uri) == "string") then
+    if int.startup_pending then int.startup_pending = nil; return result(pub, int) end
+    return nil
+  end
+  if data.account_id ~= nil and data.account_id ~= pub.account_id then
+    if int.startup_pending then int.startup_pending = nil; return result(pub, int) end
+    return nil
+  end
+  if int.startup_pending then
+    int.startup_pending, int.job_request = nil, data.request
+    local waiting = {}; for _, item in ipairs(pub.queue or {}) do
+      if not (item.resumed and item.uri == data.uri and item.track_uri == data.track_uri) then waiting[#waiting + 1] = item end
+    end
+    pub.queue = waiting
+  end
   if int.job_request and data.request ~= int.job_request then return nil end
   int.job_text, int.job_process = ev.text, copy(data.process)
   item_support.assets(doc, int, data)
@@ -277,7 +306,16 @@ function offline.on_job(doc, ev)
   if data.phase == "error" and (data.error == "storage_full" or data.error == "authentication_required") then pub.queue_paused = data.error end
   pub.jobs = pub.jobs or {}; pub.jobs[data.uri] = job_summary(data)
   local cmds = {}
-  if data.phase == "complete" or data.phase == "error" or data.phase == "interrupted" then cmds[1] = read(offline.paths(doc).catalog, "offline.catalog"); cmds[#cmds + 1] = write_queue(doc, pub) end
+  if data.phase == "complete" or data.phase == "error" or data.phase == "interrupted" then
+    local p = queue_progress(pub)
+    local key = tostring(data.request or "") .. ":" .. tostring((int.job_process or {}).start or "")
+    if p.last ~= key then
+      p.completed = p.completed + (data.completed or 0)
+      p.total = p.total + (data.phase == "complete" and (data.total or 0) or (data.completed or 0))
+      p.skipped, p.last = p.skipped + (data.skipped or 0), key
+    end
+    cmds[1] = read(offline.paths(doc).catalog, "offline.catalog"); cmds[#cmds + 1] = write_queue(doc, pub)
+  end
   if int.pending_play and data.track_uri == int.pending_play.track_uri and data.uri == int.pending_play.uri then
     if data.phase == "complete" then
       cmds[#cmds + 1] = util.emit("offline.play_cached", copy(int.pending_play))
@@ -328,8 +366,11 @@ function offline.on_sync(doc, ev)
   if busy(pub) and pub.download.uri == p.spotify.uri and pub.download.track_uri == ev.track_uri then return result(pub, int) end
   for _, item in ipairs(pub.queue) do if item.uri == p.spotify.uri and item.track_uri == ev.track_uri then return result(pub, int) end end
   if #pub.queue >= 32 then return nil, err("conflict", "", "download queue is full") end
+  if not busy(pub) and #pub.queue == 0 then pub.queue_progress = { completed = 0, total = 0, skipped = 0 } end
+  local metadata = (pub.previews or {})[p.spotify.uri] or (pub.playlists or {})[p.spotify.uri] or (pub.partials or {})[p.spotify.uri] or {}
+  local queued_total = ev.track_uri and 1 or metadata.total or metadata.total_tracks
   pub.modes = pub.modes or {}; if not ev.track_uri then pub.modes[ev.playlist] = "auto" end
-  pub.queue[#pub.queue + 1] = { playlist = ev.playlist, uri = p.spotify.uri, title = p.title, index = ev.index, track_uri = ev.track_uri }
+  pub.queue[#pub.queue + 1] = { playlist = ev.playlist, uri = p.spotify.uri, title = p.title, index = ev.index, track_uri = ev.track_uri, total = queued_total }
   pub.jobs[p.spotify.uri] = { phase = "queued" }
   local cmds = { write_modes(doc, pub), write_queue(doc, pub) }
   kick_queue(doc, pub, int, cmds, ev.now)
@@ -343,11 +384,12 @@ function offline.on_mode(doc, ev)
 end
 function offline.on_remove(doc, ev)
   local p, e = playlist(doc, ev.playlist); if not p then return nil, e end
+  if ev.track_uri and not item_support.valid_uri(ev.track_uri) then return nil, err("invalid_argument", "track_uri", "invalid Spotify title selection") end
   local pub, int = current(doc), internal(doc)
   if busy(pub) or (int.session and int.session.uri == p.spotify.uri and (doc.playback or {}).state ~= "idle" and (doc.playback or {}).state ~= "ended") then
     return nil, err("conflict", "", "stop playback and downloads before removing a snapshot")
   end
-  return result(pub, int, { action("remove", { uri = p.spotify.uri }) })
+  return result(pub, int, { action(ev.track_uri and "remove_track" or "remove", { uri = p.spotify.uri, track_uri = ev.track_uri }) })
 end
 function offline.mode(doc, id) return ((doc.spotify_offline or {}).modes or {})[id] or "online" end
 function offline.snapshot(doc, p)
@@ -532,7 +574,8 @@ function offline.install(api, dispatch)
   api.command("spotify_offline.cancel_queued", S.playlist, offline.on_cancel_queued)
   local preview_schema = copy(S.playlist); preview_schema.properties.offset = { type = "integer", minimum = 0, maximum = 10000 }
   api.command("spotify_offline.preview", preview_schema, function(doc, p, ev) p = copy(p); p.now = ev.now; return offline.on_preview_request(doc, p) end)
-  api.command("spotify_offline.remove", S.playlist, offline.on_remove)
+  local remove_schema = copy(S.playlist); remove_schema.properties.track_uri = { type = "string", minLength = 36, maxLength = 36 }
+  api.command("spotify_offline.remove", remove_schema, offline.on_remove)
   api.command("spotify_offline.mode", S.mode, offline.on_mode)
   api.command("spotify_offline.play", S.play, function(doc, p, ev) p = copy(p); p.now = ev.now; return offline.on_play(doc, p) end)
   api.command("spotify_offline.forget_account", { type = "object", additionalProperties = false }, offline.on_forget)

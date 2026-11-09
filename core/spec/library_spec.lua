@@ -134,11 +134,31 @@ describe("library.ops — tracks and tokens", function()
   it("track_delete removes the track everywhere and returns its file", function()
     local l = lib_with({ "t1" })
     local p = ops.playlist_new(l, { title = "P" }, 1)
-    ops.playlist_add_track(l, p, "t1")
+    local q = ops.playlist_new(l, { title = "Q", audiobook = true }, 2)
+    ops.playlist_add_track(l, p, "t1"); ops.playlist_add_track(l, q, "t1")
     assert_eq(ops.track_delete(l, "t1"), "/data/uploads/t1")
-    assert_eq(l.playlists[p].tracks, {})
+    assert_eq(l.playlists[p].tracks, {}); assert_eq(l.playlists[q].tracks, {})
+    local stream = ops.playlist_add_stream(l, p, "Radio", "https://radio.example/stream", 3)
+    local _, stream_err = ops.track_delete(l, stream)
+    assert_eq(stream_err.code, "read_only"); assert_true(l.tracks[stream] ~= nil)
     local _, err = ops.track_add(l, "t1", { title = "x" }); assert_nil(err)
     local _, err2 = ops.track_add(l, "t1", { title = "x" }); assert_eq(err2.code, "conflict")
+  end)
+
+  it("track_delete removes selected files and artwork from every list in one mutation", function()
+    local doc = { config = { data_dir = "/d" }, library = {
+      playlists = { p = { title = "Playlist", tracks = { "aaaaaaaaaaaaaaaa", "t2" } }, book = { title = "Book", audiobook = true, tracks = { "aaaaaaaaaaaaaaaa" } } },
+      tracks = { aaaaaaaaaaaaaaaa = { filename = "/d/uploads/aaaaaaaaaaaaaaaa", hasImage = true }, t2 = { filename = "/d/uploads/t2" } }, tokens = {} } }
+    local r = library.delete_tracks(doc, { "aaaaaaaaaaaaaaaa", "t2" })
+    assert_eq(r.state.library.tracks, {})
+    assert_eq(r.state.library.playlists.p.tracks, {}); assert_eq(r.state.library.playlists.book.tracks, {})
+    local removed = {}
+    for _, c in ipairs(r.commands) do if c.kind == "files.remove" then removed[c.path] = true end end
+    assert_true(removed["/d/uploads/aaaaaaaaaaaaaaaa"]); assert_true(removed["/d/artwork/aaaaaaaaaaaaaaaa.jpg"]); assert_true(removed["/d/uploads/t2"])
+    local unchanged, err = library.delete_tracks(doc, { "missing" })
+    assert_nil(unchanged); assert_eq(err.field, "trackId")
+    local _, bad = library.delete_tracks(doc, {})
+    assert_eq(bad.field, "trackIds")
   end)
 
   it("learn / edit / forget tokens; unknown characters are learned too", function()

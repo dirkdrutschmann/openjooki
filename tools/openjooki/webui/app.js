@@ -40,7 +40,7 @@
     select_all: 'Tout sélectionner', select_none: 'Tout désélectionner',
     delete_forever: 'Supprimer du Jooki',
     delete_forever_q: function (n) { return 'Supprimer définitivement ' + n + (n > 1 ? ' morceaux' : ' morceau') + ' ?'; },
-    delete_forever_text: 'Les fichiers seront effacés du Jooki. Cette action est irréversible.',
+    delete_forever_text: 'Efface les fichiers et retire ces titres de toutes les playlists. Irréversible.',
     deleted: 'Supprimé', choose_playlist: 'Choisir une playlist', added: function (n) { return n + (n > 1 ? ' morceaux ajoutés' : ' morceau ajouté'); },
     already_in: 'déjà dedans', add: 'Ajouter', add_n: function (n) { return 'Ajouter ' + n; },
     library_empty: 'Aucun morceau sur le Jooki.', unused_empty: 'Tous les morceaux sont dans une playlist.',
@@ -86,6 +86,9 @@
     of_show_unavailable: 'Afficher les titres indisponibles',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' titre indisponible masqué sur cette page' : ' titres indisponibles masqués sur cette page'); },
     of_filtered_empty: 'Aucun titre disponible sur cette page. Choisissez Suivant pour continuer.',
+    upd_no_release: 'Aucune mise à jour automatique n’est publiée pour ce canal.',
+    of_remove_item: 'Supprimer ce titre enregistré',
+    of_remove_item_help: function (title) { return 'Seul le fichier téléchargé de « ' + title + ' » sera supprimé. La playlist Spotify sera conservée.'; },
     of_cache_item: 'Enregistrer ce titre hors ligne',
     of_item_stored: 'Enregistré hors ligne',
     of_play_item: 'Lire ce titre',
@@ -265,7 +268,7 @@
     select_all: 'Select all', select_none: 'Deselect all',
     delete_forever: 'Delete from Jooki',
     delete_forever_q: function (n) { return 'Permanently delete ' + n + (n === 1 ? ' track' : ' tracks') + '?'; },
-    delete_forever_text: 'The files will be erased from the Jooki. This cannot be undone.',
+    delete_forever_text: 'Deletes these files from the Jooki and removes them from every playlist. This cannot be undone.',
     deleted: 'Deleted', choose_playlist: 'Choose a playlist', added: function (n) { return n + (n === 1 ? ' track added' : ' tracks added'); },
     already_in: 'already in', add: 'Add', add_n: function (n) { return 'Add ' + n; },
     library_empty: 'No track on the Jooki.', unused_empty: 'Every track is in a playlist.',
@@ -311,6 +314,9 @@
     of_show_unavailable: 'Show unavailable songs',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' unavailable song hidden on this page' : ' unavailable songs hidden on this page'); },
     of_filtered_empty: 'There are no available songs on this page. Choose Next to continue.',
+    upd_no_release: 'No automatic update is published for this update channel.',
+    of_remove_item: 'Remove this saved song',
+    of_remove_item_help: function (title) { return 'Remove only the downloaded file for “' + title + '”. The Spotify playlist is kept.'; },
     of_cache_item: 'Save this song offline',
     of_item_stored: 'Saved offline',
     of_play_item: 'Play this song',
@@ -482,7 +488,7 @@
     unused_banner: function (n) { return n + (n === 1 ? ' Titel gehört' : ' Titel gehören') + ' zu keiner Wiedergabeliste.'; }, see: 'Anzeigen',
     all: 'Alle', unused: 'Unbenutzt', search: 'Suchen', in_playlists: 'In: ', in_none: 'In keiner Wiedergabeliste', add_to: 'Hinzufügen zu…',
     selected: function (n) { return n + ' ausgewählt'; }, select_all: 'Alle auswählen', select_none: 'Auswahl aufheben', delete_forever: 'Vom Jooki löschen',
-    delete_forever_q: function (n) { return n + ' Titel endgültig löschen?'; }, delete_forever_text: 'Die Dateien werden vom Jooki gelöscht. Das lässt sich nicht rückgängig machen.',
+    delete_forever_q: function (n) { return n + ' Titel endgültig löschen?'; }, delete_forever_text: 'Löscht die Dateien vom Jooki und entfernt die Titel aus allen Wiedergabelisten. Unwiderruflich.',
     deleted: 'Gelöscht', choose_playlist: 'Wiedergabeliste auswählen', added: function (n) { return n + ' Titel hinzugefügt'; },
     already_in: 'bereits in', add: 'Hinzufügen', add_n: function (n) { return n + ' hinzufügen'; },
     library_empty: 'Noch keine Titel auf dem Jooki.', unused_empty: 'Alle Titel gehören zu einer Wiedergabeliste.',
@@ -519,6 +525,9 @@
     of_show_unavailable: 'Nicht verfügbare Titel anzeigen',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' nicht verfügbarer Titel auf dieser Seite ausgeblendet' : ' nicht verfügbare Titel auf dieser Seite ausgeblendet'); },
     of_filtered_empty: 'Auf dieser Seite sind keine verfügbaren Titel. Blättere mit „Weiter“ zur nächsten Seite.',
+    upd_no_release: 'Für diesen Updatekanal ist kein automatisches Update veröffentlicht.',
+    of_remove_item: 'Offline-Kopie dieses Titels entfernen',
+    of_remove_item_help: function (title) { return 'Nur die gespeicherte Datei von „' + title + '“ wird entfernt. Die Spotify-Playlist bleibt erhalten.'; },
     of_cache_item: 'Diesen Titel offline speichern',
     of_item_stored: 'Offline gespeichert',
     of_play_item: 'Diesen Titel abspielen',
@@ -603,7 +612,7 @@
     select_all: 'Alles selecteren', select_none: 'Selectie opheffen',
     delete_forever: 'Van de Jooki verwijderen',
     delete_forever_q: function (n) { return n + (n === 1 ? ' nummer' : ' nummers') + ' definitief verwijderen?'; },
-    delete_forever_text: 'De bestanden worden van de Jooki gewist. Dit kan niet ongedaan worden gemaakt.',
+    delete_forever_text: 'Verwijdert bestanden en nummers uit alle afspeellijsten. Niet ongedaan te maken.',
     deleted: 'Verwijderd', choose_playlist: 'Kies een afspeellijst', added: function (n) { return n + (n === 1 ? ' nummer toegevoegd' : ' nummers toegevoegd'); },
     already_in: 'zit er al in', add: 'Toevoegen', add_n: function (n) { return n + ' toevoegen'; },
     library_empty: 'Geen nummers op de Jooki.', unused_empty: 'Elk nummer zit in een afspeellijst.',
@@ -649,6 +658,9 @@
     of_show_unavailable: 'Niet-beschikbare nummers tonen',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' niet-beschikbaar nummer verborgen op deze pagina' : ' niet-beschikbare nummers verborgen op deze pagina'); },
     of_filtered_empty: 'Er zijn geen beschikbare nummers op deze pagina. Kies Volgende om verder te gaan.',
+    upd_no_release: 'Er is geen automatische update gepubliceerd voor dit updatekanaal.',
+    of_remove_item: 'Dit opgeslagen nummer verwijderen',
+    of_remove_item_help: function (title) { return 'Alleen het gedownloade bestand van “' + title + '” wordt verwijderd. De Spotify-afspeellijst blijft behouden.'; },
     of_cache_item: 'Dit nummer offline opslaan',
     of_item_stored: 'Offline opgeslagen',
     of_play_item: 'Dit nummer afspelen',
@@ -1075,6 +1087,7 @@
     el.appendChild(typeof c === 'object' ? c : document.createTextNode(String(c)));
   }
   var ICONS = {
+    spotify: '<circle cx="12" cy="12" r="9"/><path d="M6.5 9a15 15 0 0 1 11 .8M7.3 12a12 12 0 0 1 9.4 .7M8 15a9 9 0 0 1 7.8 .5"/>',
     list: '<path d="M4 6h16M4 12h16M4 18h10"/>',
     token: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
     lib: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
@@ -2219,7 +2232,7 @@
         h('div', { class: 'ph' }, tokVisual(p.star, 'sm', S.nfc.starId && S.nfc.starId === p.star)),
         h('div', { class: 'name' }, p.title || '—'),
         h('div', { class: 'pl-footer' },
-          h('div', { class: 'meta' }, p.spotify ? t('sp_playlist') : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : ''),
+          h('div', { class: 'meta' + (p.spotify ? ' services' : '') }, p.spotify ? h('span', { class: 'playlist-service', role: 'img', title: t('sp_playlist'), 'aria-label': t('sp_playlist') }, icon('spotify')) : t('n_tracks', n) + (total ? ' · ' + fmtTotal(total) : '') + (p.audiobook ? ' · ' + t('audiobook') : ''),
             spotifyStorageBadge(p)),
           n || p.spotify ? h('button', { class: 'icon-btn accent play', 'aria-label': t('play') + ' ' + (p.title || ''), onclick: function (e) {
             e.stopPropagation(); playPlaylist(p); } }, icon('play')) : null));
@@ -2515,6 +2528,7 @@
     var meta = obj(offlinePreviewCache[pageKey + ':' + wanted]);
     var active = obj(o.download), mine = active.uri === p.spotify.uri, busy = offlineBusy();
     var own = mine ? active : obj(obj(o.jobs)[p.spotify.uri]);
+    var stored = snap.ready || Number(snap.cached_tracks) > 0 || Number(obj(obj(o.partials)[p.spotify.uri]).cached_tracks) > 0;
     var ready = !!snap.ready, offset = Number(meta.offset) || wanted;
     var tracks = arr(meta.tracks).length ? arr(meta.tracks) : wanted === 0 && arr(snap.tracks).length ? arr(snap.tracks) : mine && wanted === 0 ? arr(active.tracks) : [];
     tracks = tracks.map(function (track) { return spotifyStoredTrack(p, track); });
@@ -2538,7 +2552,6 @@
       offlinePageOffsets[pageKey] = next; askSpotifyTitles(id, next, true);
     }
     if (metadataReady && ((!meta.phase && (!ready || !tracks.length || tracks.length < total)) || meta.from_disk || (meta.fetched_at && Date.now() - meta.fetched_at > 300000))) askSpotifyTitles(id, wanted, false);
-    var other = userPlaylists().filter(function (item) { return item.spotify && item.spotify.uri === active.uri; })[0];
     function command(kind) { send(kind, { playlistId: id }); }
     var titleBlock = h('section', { class: 'spotify-titles', 'data-k': 'spotify-titles' },
       h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, total ? String(total) : '')),
@@ -2578,29 +2591,21 @@
         h('button', { class: 'btn primary', disabled: (busy && mine) || queuedAt >= 0, onclick: function () { command('OJ_OFFLINE_SYNC'); } },
           t(queuedAt >= 0 ? 'of_queued' : busy && mine ? 'of_busy' : busy || playing ? 'of_enqueue' : ready ? 'of_update' : 'of_download')),
         queuedAt >= 0 ? h('button', { class: 'btn ghost', onclick: function () { command('OJ_OFFLINE_CANCEL_QUEUED'); } }, t('of_cancel_queue')) : null,
-        ready ? h('button', { class: 'btn ghost', disabled: busy || inUse, onclick: function () {
+        stored ? h('button', { class: 'btn ghost', disabled: busy || inUse, onclick: function () {
           confirmBox(t('of_remove_q'), t('of_remove_help'), t('of_remove'), true).then(function (yes) { if (yes) command('OJ_OFFLINE_REMOVE'); });
         } }, t('of_remove')) : null),
       playing && queue.length ? h('p', { class: 'offline-notice', role: 'status' }, t('of_pause_sync')) : null,
       o.queue_paused ? h('div', { class: 'offline-notice', role: 'status' }, offlineErrorText(o.queue_paused), ' ',
         h('button', { class: 'btn ghost', onclick: function () { send('OJ_OFFLINE_RESUME_QUEUE', {}); } }, t('of_resume_queue'))) : null,
       queuedAt >= 0 ? h('p', { class: 'small muted', role: 'status' }, t('of_queue_position', queuedAt + 1)) : null,
-      busy ? h('div', { class: 'offline-progress', role: 'status', 'data-k': 'offline-progress' },
-        h('div', { class: 'offline-heading' }, h('span', null, t('of_busy')), h('b', null, (active.completed || 0) + ' / ' + (active.total || '…'))),
-        !mine ? h('p', { class: 'small' }, t('of_other'), other ? h('a', { href: '#/p/' + encodeURIComponent(other.id) }, other.title || 'Spotify') : 'Spotify') : null,
-        h('progress', { max: Math.max(1, Number(active.total) || 1), value: Number(active.completed) || 0, 'aria-label': t('of_busy') }),
-        h('span', { class: 'small muted' }, t('of_processed') + ': ' + offlineBytes(active.bytes) + (active.skipped ? ' · ' + t('of_skipped_count', active.skipped) : ''))) : null,
+      spotifyQueueProgress(o),
       /^(error|interrupted)$/.test(own.phase || '') ? h('p', { class: 'offline-notice error', role: 'alert' },
         own.total ? failedUnavailable ? t('of_failed_at', own.track_index || failedIndex + 1, own.track_index ? total : own.total) + (failedTitle ? ' ' + t('of_failed_title', failedTitle) : '') + ' ' : (own.completed || 0) + ' / ' + own.total + ' · ' : '', offlineErrorText(own.error)) : null,
       obj(o.player).playlist === id && obj(o.player).error ? h('p', { class: 'offline-notice error', role: 'alert' }, offlineErrorText(o.player.error, 'playback')) : null,
       snap.skipped_tracks ? h('p', { class: 'offline-notice', role: 'status' }, t('of_skipped_count', snap.skipped_tracks)) : null,
       ready ? h('p', { class: 'small', 'data-k': 'offline-ready' }, t('of_ready') + ' · ' + (snap.total_tracks || arr(snap.tracks).length) + ' · ' + offlineBytes(snap.bytes)) : null,
-      h('div', { class: 'offline-storage small muted' }, h('span', null, t('of_storage') + ': ' + offlineBytes(storage.used_bytes)),
+      h('div', { class: 'offline-storage small muted' }, h('span', null, t('of_storage') + ': ' + (typeof storage.used_bytes === 'number' ? offlineBytes(storage.used_bytes) : '—')),
         h('span', null, t('of_free') + ': ' + offlineBytes(storage.free_bytes))),
-      h('p', { class: 'small muted' }, t('of_auto_storage')),
-      queue.length ? h('details', { class: 'offline-queue', 'data-k': 'offline-queue' }, h('summary', null, t('of_queue') + ' · ' + queue.length),
-        h('ol', null, queue.map(function (item) { return h('li', null, h('a', { href: '#/p/' + encodeURIComponent(item.playlist) }, item.title || 'Spotify'),
-          h('button', { class: 'icon-btn', 'aria-label': t('of_cancel_queue') + ': ' + (item.title || ''), onclick: function () { send('OJ_OFFLINE_CANCEL_QUEUED', { playlistId: item.playlist }); } }, icon('x'))); }))) : null,
       titleBlock);
   }
   var offlineShowUnavailable = lsGet('oj.offline.unavailable') === '1';
@@ -2622,9 +2627,9 @@
   }
   function offlineTitleChanged(before, after) {
     if (!before || before.account_id !== after.account_id) return;
-    var old = obj(before.playlists), fresh = obj(after.playlists), account = after.account_id || '';
+    var old = Object.assign({}, obj(before.partials), obj(before.playlists)), fresh = Object.assign({}, obj(after.partials), obj(after.playlists)), account = after.account_id || '';
     Object.keys(old).concat(Object.keys(fresh)).filter(function (uri, i, a) { return a.indexOf(uri) === i; }).forEach(function (uri) {
-      if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready) return;
+      if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready && obj(old[uri]).cached_tracks === obj(fresh[uri]).cached_tracks) return;
       var prefix = account + ':' + uri + ':';
       Object.keys(offlinePreviewCache).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlinePreviewCache[k]; });
       offlinePreviewAsked = {};
@@ -2657,37 +2662,63 @@
   function spotifyStoredTrack(p, track) {
     var o = obj(S.spotifyOffline), snap = obj(obj(o.playlists)[p.spotify.uri]), result = snap.ready && track.cached === undefined && !track.problem ? Object.assign({}, track, { cached: true }) : track;
     [arr(snap.tracks), arr(obj(o.download).uri === p.spotify.uri ? obj(o.download).tracks : [])].forEach(function (list) {
-      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (t.cached === true || (t.cached === undefined && t.bytes > 0))) result = Object.assign({}, track, { cached: true, image: t.image || track.image }); });
+      list.forEach(function (t) { if (t.uri && t.uri === track.uri && (typeof t.cached === 'boolean' || t.bytes > 0)) result = Object.assign({}, track, { cached: t.cached !== false, image: t.image || track.image }); });
     });
     return result;
   }
+  function spotifyQueueProgress(o) {
+    var active = obj(o.download), waiting = arr(o.queue), done = obj(o.queue_progress), busy = offlineBusy();
+    if (!busy && !waiting.length) return null;
+    var completed = Number(done.completed) || 0, total = Number(done.total) || 0, unknown = false;
+    if (busy) { completed += Number(active.completed) || 0; total += Number(active.total) || 0; unknown = !Number(active.total); }
+    waiting.forEach(function (item) {
+      var count = Number(item.total) || Number(obj(obj(o.playlists)[item.uri]).total_tracks) || Number(obj(obj(o.partials)[item.uri]).total_tracks) || (item.track_uri ? 1 : 0);
+      if (!count) unknown = true;
+      total += count;
+    });
+    var playlist = userPlaylists().filter(function (p) { return p.spotify && p.spotify.uri === active.uri; })[0];
+    return h('div', { class: 'offline-progress compact', role: 'status', 'data-k': 'offline-progress' },
+      icon('download'), h('span', { class: 'grow' }, t('of_queue') + ' · ' + (busy ? t('of_busy') : t('of_queued')),
+        busy && playlist ? [' · ', h('a', { href: '#/p/' + encodeURIComponent(playlist.id) }, playlist.title || 'Spotify')] : null),
+      h('b', null, completed + ' / ' + (unknown ? '…' : total)),
+      h('progress', { max: Math.max(1, total), value: completed, 'aria-label': t('of_queue') }));
+  }
   function spotifyStorageBadge(p) {
-    var o = obj(S.spotifyOffline);
+    var o = obj(S.spotifyOffline), ready = false, count = 0, total = 0, downloading = false;
     if (!p.spotify) {
-      var files = arr(p.tracks), stored = files.filter(function (id) { var t = obj(S.db.tracks[id]); return t.filename && !t.isUrl; }).length;
-      return files.length ? h('div', { class: 'pl-offline-status' }, h('span', { class: 'offline-badge' + (stored === files.length ? ' ready' : '') },
-        icon(stored === files.length ? 'check' : 'globe'), stored ? t('of_stored_count', stored, files.length) : t('of_online_badge'))) : null;
+      var files = arr(p.tracks);
+      if (!files.length) return null;
+      count = files.filter(function (id) { var track = obj(S.db.tracks[id]); return track.filename && !track.isUrl; }).length;
+      total = files.length; ready = count === total;
+    } else {
+      if (!o.available) return null;
+      var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]), job = obj(obj(o.jobs)[p.spotify.uri]);
+      ready = !!snap.ready;
+      count = snap.cached_tracks !== undefined ? Number(snap.cached_tracks) : partial.cached_tracks !== undefined ? Number(partial.cached_tracks) : (ready ? Number(snap.total_tracks) : Number(job.completed) - Number(job.skipped || 0)) || 0;
+      if (snap.cached_tracks === 0) ready = false;
+      total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
+      downloading = obj(o.download).uri === p.spotify.uri && offlineBusy();
     }
-    if (!o.available) return null;
-    var snap = obj(obj(o.playlists)[p.spotify.uri]), partial = obj(obj(o.partials)[p.spotify.uri]);
-    var job = obj(obj(o.jobs)[p.spotify.uri]), count = snap.cached_tracks !== undefined ? Number(snap.cached_tracks) : partial.cached_tracks !== undefined ? Number(partial.cached_tracks) : (snap.ready ? Number(snap.total_tracks) : Number(job.completed) - Number(job.skipped || 0)) || 0;
-    var total = Number(snap.total_tracks || partial.total_tracks || job.total) || 0;
-    var downloading = obj(o.download).uri === p.spotify.uri && offlineBusy(), mode = obj(o.modes)[p.id] || 'online';
-    return h('div', { class: 'pl-offline-status' },
-      h('span', { class: 'offline-badge' + (snap.ready ? ' ready' : ''), 'data-k': 'playlist-cache' },
-        icon(snap.ready ? 'check' : count ? 'disk' : 'globe'), downloading ? t('of_busy') : count ? t('of_stored_count', count, total || count) : t('of_online_badge')),
-      snap.ready ? h('span', { class: 'small muted' }, t(mode === 'online' ? 'of_route_online' : 'of_route_offline')) : null);
+    var label = downloading ? t('of_busy') : ready ? t('of_ready') : count ? t('of_stored_count', count, total || count) : t('of_online_badge');
+    return h('span', { class: 'offline-badge status-icon' + (ready ? ' ready' : ''), role: 'img', title: label, 'aria-label': label, 'data-k': 'playlist-cache' },
+      icon(downloading ? 'download' : ready ? 'check' : count ? 'disk' : 'globe'));
   }
   function spotifyTrackActions(p, track, position, busy) {
     var o = obj(S.spotifyOffline), queued = arr(o.queue).some(function (q) { return q.uri === p.spotify.uri && q.track_uri === track.uri; });
     if (!o.account_ready || spotifyTrackUnavailable(track)) return null;
     var current = obj(o.download), loading = busy && current.uri === p.spotify.uri && (!current.track_uri || current.track_uri === track.uri);
-    var label = track.cached ? t('of_item_stored') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
+    var label = track.cached ? t('of_remove_item') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
     function cache(play) { send('OJ_OFFLINE_CACHE_TRACK', { playlistId: p.id, trackIndex: position, trackUri: track.uri, play: play }); }
+    var inUse = obj(S.audio.nowPlaying).service === 'SPOTIFY_OFFLINE' && obj(S.audio.nowPlaying).playlistId === p.id && !/^(STOPPED|ENDED)$/.test(obj(S.audio.playback).state || '');
     return h('span', { class: 'offline-track-actions' },
-      h('button', { class: 'offline-chip' + (track.cached ? ' ready' : ''), disabled: track.cached || loading || queued || !o.account_ready,
-        title: label, 'aria-label': label + ': ' + (track.name || ''), 'data-track-cache': track.uri,
-        onclick: function () { cache(false); } }, icon(track.cached ? 'check' : 'download')),
+      h('button', { class: 'offline-chip' + (track.cached ? ' ready' : ''), disabled: loading || queued || !o.account_ready || (track.cached && (busy || inUse)),
+        title: label, 'aria-label': label + ': ' + (track.name || ''), 'data-track-cache': track.uri, 'data-track-remove': track.cached ? track.uri : null,
+        onclick: function () {
+          if (!track.cached) { cache(false); return; }
+          confirmBox(t('of_remove_q'), t('of_remove_item_help', track.name || ''), t('of_remove'), true).then(function (yes) {
+            if (yes) send('OJ_OFFLINE_REMOVE', { playlistId: p.id, trackUri: track.uri });
+          });
+        } }, icon(track.cached ? 'check' : 'download')),
       o.account_ready ? h('button', { class: 'icon-btn', disabled: busy || queued, title: t('of_play_item'),
         'aria-label': t('of_play_item') + ': ' + (track.name || ''), 'data-track-play': track.uri,
         onclick: function () {
@@ -2832,6 +2863,7 @@
     var loose = all.filter(function (k) { return !grouped[k]; });
     Object.keys(ui.sel).forEach(function (k) { if (all.indexOf(k) < 0) delete ui.sel[k]; });
     var chosen = all.filter(function (k) { return ui.sel[k]; });
+    var deletable = chosen.filter(function (k) { return S.db.tracks[k] && !S.db.tracks[k].isUrl; });
     var nAll = Object.keys(S.db.tracks).length;
     var allChosen = all.length > 0 && chosen.length === all.length;
     function bookFolder(book) {
@@ -2866,12 +2898,11 @@
       chosen.length ? h('div', { class: 'card selbar' },
         h('span', { class: 'grow small' }, t('selected', chosen.length)),
         h('button', { class: 'btn primary', onclick: function () { addToPlaylistModal(chosen); } }, t('add_to')),
-        tab === 'unused' ? h('button', { class: 'btn danger', onclick: function () {
-          confirmBox(t('delete_forever_q', chosen.length), t('delete_forever_text'), t('delete'), true).then(function (ok) {
+        deletable.length ? h('button', { class: 'btn danger', 'data-k': 'delete-tracks', onclick: function () {
+          confirmBox(t('delete_forever_q', deletable.length), t('delete_forever_text'), t('delete'), true).then(function (ok) {
             if (!ok) return;
-            var keep = unusedIds().filter(function (x) { return chosen.indexOf(x) < 0; });
-            send('PLAYLIST_UPDATE', { playlist: { id: 'TRASH', tracks: keep } });
-            ui.sel = {}; toast(t('deleted'));
+            send('TRACK_DELETE', { trackIds: deletable });
+            ui.sel = {}; render(); toast(t('deleted'));
           });
         } }, icon('trash'), t('delete_forever')) : null) : null
     ];
@@ -3335,7 +3366,8 @@
         var d = null;
         try { d = JSON.parse(txt); } catch (e) {}
         if (d && !d.pending) {
-          if (d.error || !d.version) { upd.state = 'offline'; }
+          if (d.error === 'no_release') { upd.state = 'no_release'; }
+          else if (d.error || !d.version) { upd.state = 'offline'; }
           else { upd.latest = String(d.version); upd.state = 'checked'; }
           render(); return;
         }
@@ -3443,7 +3475,7 @@
     var avail = upd.state === 'checked' && updateAvailable();
     var bad = upd.state === 'failed' || upd.state === 'offline';
     var look = avail ? ['up', 'accent'] : bad ? ['x', 'danger'] : upd.state === 'checked' ? ['check', 'ok'] : ['up', 'muted'];
-    var title = upd.state === 'checking' ? t('upd_checking') : upd.state === 'offline' ? t('upd_offline') : upd.state === 'failed' ? t('upd_failed')
+    var title = upd.state === 'checking' ? t('upd_checking') : upd.state === 'no_release' ? t('upd_no_release') : upd.state === 'offline' ? t('upd_offline') : upd.state === 'failed' ? t('upd_failed')
       : avail ? t('upd_available', upd.latest) : upd.state === 'checked' ? t('upd_uptodate') : 'OpenJooki ' + (cur || '—');
     return [
       h('div', { class: 'statuscard', 'data-k': 'updcard' }, h('div', { class: 'bigico ' + look[1] }, icon(look[0])),

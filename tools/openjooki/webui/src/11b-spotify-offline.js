@@ -37,6 +37,7 @@
     var meta = obj(offlinePreviewCache[pageKey + ':' + wanted]);
     var active = obj(o.download), mine = active.uri === p.spotify.uri, busy = offlineBusy();
     var own = mine ? active : obj(obj(o.jobs)[p.spotify.uri]);
+    var stored = snap.ready || Number(snap.cached_tracks) > 0 || Number(obj(obj(o.partials)[p.spotify.uri]).cached_tracks) > 0;
     var ready = !!snap.ready, offset = Number(meta.offset) || wanted;
     var tracks = arr(meta.tracks).length ? arr(meta.tracks) : wanted === 0 && arr(snap.tracks).length ? arr(snap.tracks) : mine && wanted === 0 ? arr(active.tracks) : [];
     tracks = tracks.map(function (track) { return spotifyStoredTrack(p, track); });
@@ -60,7 +61,6 @@
       offlinePageOffsets[pageKey] = next; askSpotifyTitles(id, next, true);
     }
     if (metadataReady && ((!meta.phase && (!ready || !tracks.length || tracks.length < total)) || meta.from_disk || (meta.fetched_at && Date.now() - meta.fetched_at > 300000))) askSpotifyTitles(id, wanted, false);
-    var other = userPlaylists().filter(function (item) { return item.spotify && item.spotify.uri === active.uri; })[0];
     function command(kind) { send(kind, { playlistId: id }); }
     var titleBlock = h('section', { class: 'spotify-titles', 'data-k': 'spotify-titles' },
       h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, total ? String(total) : '')),
@@ -100,28 +100,20 @@
         h('button', { class: 'btn primary', disabled: (busy && mine) || queuedAt >= 0, onclick: function () { command('OJ_OFFLINE_SYNC'); } },
           t(queuedAt >= 0 ? 'of_queued' : busy && mine ? 'of_busy' : busy || playing ? 'of_enqueue' : ready ? 'of_update' : 'of_download')),
         queuedAt >= 0 ? h('button', { class: 'btn ghost', onclick: function () { command('OJ_OFFLINE_CANCEL_QUEUED'); } }, t('of_cancel_queue')) : null,
-        ready ? h('button', { class: 'btn ghost', disabled: busy || inUse, onclick: function () {
+        stored ? h('button', { class: 'btn ghost', disabled: busy || inUse, onclick: function () {
           confirmBox(t('of_remove_q'), t('of_remove_help'), t('of_remove'), true).then(function (yes) { if (yes) command('OJ_OFFLINE_REMOVE'); });
         } }, t('of_remove')) : null),
       playing && queue.length ? h('p', { class: 'offline-notice', role: 'status' }, t('of_pause_sync')) : null,
       o.queue_paused ? h('div', { class: 'offline-notice', role: 'status' }, offlineErrorText(o.queue_paused), ' ',
         h('button', { class: 'btn ghost', onclick: function () { send('OJ_OFFLINE_RESUME_QUEUE', {}); } }, t('of_resume_queue'))) : null,
       queuedAt >= 0 ? h('p', { class: 'small muted', role: 'status' }, t('of_queue_position', queuedAt + 1)) : null,
-      busy ? h('div', { class: 'offline-progress', role: 'status', 'data-k': 'offline-progress' },
-        h('div', { class: 'offline-heading' }, h('span', null, t('of_busy')), h('b', null, (active.completed || 0) + ' / ' + (active.total || '…'))),
-        !mine ? h('p', { class: 'small' }, t('of_other'), other ? h('a', { href: '#/p/' + encodeURIComponent(other.id) }, other.title || 'Spotify') : 'Spotify') : null,
-        h('progress', { max: Math.max(1, Number(active.total) || 1), value: Number(active.completed) || 0, 'aria-label': t('of_busy') }),
-        h('span', { class: 'small muted' }, t('of_processed') + ': ' + offlineBytes(active.bytes) + (active.skipped ? ' · ' + t('of_skipped_count', active.skipped) : ''))) : null,
+      spotifyQueueProgress(o),
       /^(error|interrupted)$/.test(own.phase || '') ? h('p', { class: 'offline-notice error', role: 'alert' },
         own.total ? failedUnavailable ? t('of_failed_at', own.track_index || failedIndex + 1, own.track_index ? total : own.total) + (failedTitle ? ' ' + t('of_failed_title', failedTitle) : '') + ' ' : (own.completed || 0) + ' / ' + own.total + ' · ' : '', offlineErrorText(own.error)) : null,
       obj(o.player).playlist === id && obj(o.player).error ? h('p', { class: 'offline-notice error', role: 'alert' }, offlineErrorText(o.player.error, 'playback')) : null,
       snap.skipped_tracks ? h('p', { class: 'offline-notice', role: 'status' }, t('of_skipped_count', snap.skipped_tracks)) : null,
       ready ? h('p', { class: 'small', 'data-k': 'offline-ready' }, t('of_ready') + ' · ' + (snap.total_tracks || arr(snap.tracks).length) + ' · ' + offlineBytes(snap.bytes)) : null,
-      h('div', { class: 'offline-storage small muted' }, h('span', null, t('of_storage') + ': ' + offlineBytes(storage.used_bytes)),
+      h('div', { class: 'offline-storage small muted' }, h('span', null, t('of_storage') + ': ' + (typeof storage.used_bytes === 'number' ? offlineBytes(storage.used_bytes) : '—')),
         h('span', null, t('of_free') + ': ' + offlineBytes(storage.free_bytes))),
-      h('p', { class: 'small muted' }, t('of_auto_storage')),
-      queue.length ? h('details', { class: 'offline-queue', 'data-k': 'offline-queue' }, h('summary', null, t('of_queue') + ' · ' + queue.length),
-        h('ol', null, queue.map(function (item) { return h('li', null, h('a', { href: '#/p/' + encodeURIComponent(item.playlist) }, item.title || 'Spotify'),
-          h('button', { class: 'icon-btn', 'aria-label': t('of_cancel_queue') + ': ' + (item.title || ''), onclick: function () { send('OJ_OFFLINE_CANCEL_QUEUED', { playlistId: item.playlist }); } }, icon('x'))); }))) : null,
       titleBlock);
   }

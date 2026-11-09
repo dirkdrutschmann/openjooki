@@ -18,7 +18,7 @@ sys.path.insert(0, str(trial.ROOT / 'tools/openjooki'))
 import jooki  # noqa: E402
 
 BASE_VERSION = '2.5.1'
-VERSION = BASE_VERSION + '-offline'
+VERSION = BASE_VERSION + '+offline'
 SD_ROOT = '/jooki/external/openjooki-offline'
 
 
@@ -27,8 +27,8 @@ def digest(data):
 
 
 def assemble(work, output, version):
-    if not re.fullmatch(re.escape(BASE_VERSION) + r'-offline(?:\.[1-9][0-9]*)?', version):
-        raise ValueError('Use a 2.5.1-offline test version')
+    if not re.fullmatch(re.escape(BASE_VERSION) + r'(?:\+|-)offline(?:\.[1-9][0-9]*)?', version):
+        raise ValueError('Use a 2.5.1+offline version')
     output.mkdir(parents=True, exist_ok=True)
     manifest = json.loads((work / 'mips-build.json').read_text())
     executable = work / 'cross-smoke/target' / mips.TARGET / 'release/spotify_player'

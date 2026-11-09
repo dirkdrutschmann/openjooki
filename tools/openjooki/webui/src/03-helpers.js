@@ -23,6 +23,7 @@
     el.appendChild(typeof c === 'object' ? c : document.createTextNode(String(c)));
   }
   var ICONS = {
+    spotify: '<circle cx="12" cy="12" r="9"/><path d="M6.5 9a15 15 0 0 1 11 .8M7.3 12a12 12 0 0 1 9.4 .7M8 15a9 9 0 0 1 7.8 .5"/>',
     list: '<path d="M4 6h16M4 12h16M4 18h10"/>',
     token: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
     lib: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',

@@ -395,10 +395,10 @@ index bc21f41..a98e781 100644
 +
 diff --git a/spotify_player/src/downloads/managed.rs b/spotify_player/src/downloads/managed.rs
 new file mode 100644
-index 0000000..c8426bd
+index 0000000..5a2d310
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed.rs
-@@ -0,0 +1,2272 @@
+@@ -0,0 +1,2372 @@
 +#[path = "managed_items.rs"]
 +mod items;
 +use std::{
@@ -476,6 +476,11 @@ index 0000000..c8426bd
 +                        .required(true)
 +                        .value_parser(clap::value_parser!(usize)),
 +                ),
++        )
++        .subcommand(
++            Command::new("remove-track")
++                .arg(Arg::new("uri").required(true))
++                .arg(Arg::new("track-uri").long("track-uri").required(true)),
 +        )
 +        .subcommand(Command::new("remove").arg(Arg::new("uri").required(true)))
 +        .subcommand(Command::new("forget"))
@@ -774,20 +779,30 @@ index 0000000..c8426bd
 +}
 +
 +fn used_bytes(root: &Path) -> Result<u64> {
-+    fn visit(root: &Path, seen: &mut HashSet<(u64, u64)>) -> Result<u64> {
++    fn visit(entries: fs::ReadDir, seen: &mut HashSet<(u64, u64)>) -> Result<u64> {
 +        let mut total = 0;
-+        for item in fs::read_dir(root)? {
++        for item in entries {
 +            let item = item?;
-+            let meta = fs::symlink_metadata(item.path())?;
++            // Writers atomically rename temporary audio/JSON files during a scan.
++            // A vanished entry is harmless; actual I/O errors must remain errors.
++            let meta = match fs::symlink_metadata(item.path()) {
++                Ok(meta) => meta,
++                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
++                Err(error) => return Err(error.into()),
++            };
 +            if meta.is_dir() {
-+                total += visit(&item.path(), seen)?;
++                match fs::read_dir(item.path()) {
++                    Ok(children) => total += visit(children, seen)?,
++                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
++                    Err(error) => return Err(error.into()),
++                }
 +            } else if meta.is_file() && seen.insert((meta.dev(), meta.ino())) {
 +                total += meta.len();
 +            }
 +        }
 +        Ok(total)
 +    }
-+    visit(root, &mut HashSet::new())
++    visit(fs::read_dir(root)?, &mut HashSet::new())
 +}
 +fn account_id() -> Result<Option<String>> {
 +    let username = auth::AuthConfig::new(config::get_config())?
@@ -892,6 +907,8 @@ index 0000000..c8426bd
 +            );
 +        }
 +    }
++    // Preserve the last catalog if storage cannot be read; do not publish a false zero.
++    let storage_used = used_bytes(&paths.root)?;
 +    let value = serde_json::to_value(Catalog {
 +        version: VERSION,
 +        account_name: auth::AuthConfig::new(config::get_config())
@@ -909,7 +926,7 @@ index 0000000..c8426bd
 +        },
 +        account_ready: verified_account(paths, id.as_deref()),
 +        account_id: id,
-+        used_bytes: used_bytes(&paths.root).unwrap_or(0),
++        used_bytes: storage_used,
 +        free_bytes: free_bytes(&paths.root).unwrap_or(0),
 +        quota_bytes: effective_quota(paths).unwrap_or(0),
 +        playlists,
@@ -1666,19 +1683,23 @@ index 0000000..c8426bd
 +        );
 +    }
 +    let id = account_id()?.context("authentication_required")?;
-+    let mut index = load_index(paths, &id)?;
++    remove_playlist_files(paths, &id, uri)?;
++    publish_catalog(paths, None)
++}
++fn remove_playlist_files(paths: &Paths, id: &str, uri: &str) -> Result<()> {
++    let mut index = load_index(paths, id)?;
 +    if let Some(entry) = index.playlists.remove(uri) {
-+        let dir = entry_library(paths, &id, &entry)?.root().to_path_buf();
++        let dir = entry_library(paths, id, &entry)?.root().to_path_buf();
 +        save_index(paths, &index)?;
 +        fs::remove_dir_all(dir)?;
 +    }
-+    let pending = paths.pending(&id, uri);
++    let pending = paths.pending(id, uri);
 +    if pending.exists() {
 +        fs::remove_dir_all(pending)?;
 +    }
-+    let _ = write_json(&index_path(paths, &id).with_extension("json.bak"), &index);
++    let _ = write_json(&index_path(paths, id).with_extension("json.bak"), &index);
 +    let prefix = hash(uri.as_bytes()) + "-";
-+    let generations = paths.account(&id).join("generations");
++    let generations = paths.account(id).join("generations");
 +    if generations.is_dir() {
 +        for item in fs::read_dir(generations)? {
 +            let item = item?;
@@ -1688,7 +1709,7 @@ index 0000000..c8426bd
 +            }
 +        }
 +    }
-+    publish_catalog(paths, None)
++    Ok(())
 +}
 +fn wait_auth_lock(paths: &Paths) -> Result<Lock> {
 +    let start = Instant::now();
@@ -2158,6 +2179,12 @@ index 0000000..c8426bd
 +        )),
 +        "play" => run_playback(&paths, sub, uri.as_deref().context("missing playlist")?),
 +        "remove" => remove(&paths, uri.as_deref().context("missing playlist")?),
++        "remove-track" => items::remove_track(
++            &paths,
++            uri.as_deref().context("missing playlist")?,
++            sub.get_one::<String>("track-uri")
++                .context("missing track URI")?,
++        ),
 +        "forget" => forget(&paths),
 +        _ => bail!("unknown managed command"),
 +    };
@@ -2279,6 +2306,79 @@ index 0000000..c8426bd
 +            tracks,
 +        )
 +    }
++    #[test]
++    fn individual_removal_invalidates_only_that_copy_and_resync_reuses_survivors() {
++        let root = tempfile::tempdir().unwrap();
++        let p = paths(root.path());
++        let lib = stage(&p);
++        let a = fixture(&lib, "1111111111111111111111", "First");
++        let b = fixture(&lib, "2222222222222222222222", "Second");
++        publish(&p, vec![a.clone(), b.clone()]).unwrap();
++        let index = load_index(&p, ACCOUNT).unwrap();
++        let original = entry_library(&p, ACCOUNT, &index.playlists[URI]).unwrap();
++        let survivor = original.root().join("2222222222222222222222.spdl");
++        let bytes = fs::read(&survivor).unwrap();
++        let inode = fs::metadata(&survivor).unwrap().ino();
++        let pending = stage(&p);
++        pending.create().unwrap();
++        reuse(&original, pending.root()).unwrap();
++        items::remove_track_files(&p, ACCOUNT, URI, &a.uri).unwrap();
++        assert!(!original.contains_valid(&a.uri));
++        assert!(!pending.contains_valid(&a.uri));
++        assert!(original.contains_valid(&b.uri));
++        assert_eq!(fs::read(&survivor).unwrap(), bytes);
++        let index = load_index(&p, ACCOUNT).unwrap();
++        assert!(select_complete(&original, URI, &index.playlists[URI]).is_err());
++        reuse(&original, pending.root()).unwrap();
++        fixture(&pending, "1111111111111111111111", "First");
++        publish(&p, vec![a, b]).unwrap();
++        let index = load_index(&p, ACCOUNT).unwrap();
++        let refreshed = entry_library(&p, ACCOUNT, &index.playlists[URI]).unwrap();
++        assert_eq!(
++            select_complete(&refreshed, URI, &index.playlists[URI])
++                .unwrap()
++                .len(),
++            2
++        );
++        let survivor = refreshed.root().join("2222222222222222222222.spdl");
++        assert_eq!(fs::metadata(&survivor).unwrap().ino(), inode);
++        assert_eq!(fs::read(survivor).unwrap(), bytes);
++    }
++
++    #[test]
++    fn whole_removal_also_removes_partial_downloads_and_keeps_other_playlists() {
++        let root = tempfile::tempdir().unwrap();
++        let p = paths(root.path());
++        fixture(&stage(&p), "1111111111111111111111", "Partial");
++        let other_uri = "spotify:playlist:2222222222222222222222";
++        let other = Library::new(p.pending(ACCOUNT, other_uri));
++        let saved = fixture(&other, "2222222222222222222222", "Keep");
++        remove_playlist_files(&p, ACCOUNT, URI).unwrap();
++        assert!(!p.pending(ACCOUNT, URI).exists());
++        assert!(other.contains_valid(&saved.uri));
++        remove_playlist_files(&p, ACCOUNT, URI).unwrap();
++        assert!(other.contains_valid(&saved.uri));
++    }
++
++    #[test]
++    fn storage_accounting_tolerates_atomic_writers_and_rejects_an_unreadable_root() {
++        let dir = tempfile::tempdir().unwrap();
++        let payload = vec![7; 8192];
++        fs::write(dir.path().join("fixed"), &payload).unwrap();
++        let root = dir.path().to_owned();
++        let writer = std::thread::spawn(move || {
++            for _ in 0..500 {
++                fs::write(root.join("temporary"), b"changing metadata").unwrap();
++                fs::rename(root.join("temporary"), root.join("current")).unwrap();
++            }
++        });
++        for _ in 0..500 {
++            assert!(used_bytes(dir.path()).unwrap() >= payload.len() as u64);
++        }
++        writer.join().unwrap();
++        assert!(used_bytes(&dir.path().join("missing")).is_err());
++    }
++
 +    #[tokio::test]
 +    async fn known_unavailable_members_never_invoke_the_audio_downloader() {
 +        let song = super::super::native::Song {
@@ -2673,10 +2773,10 @@ index 0000000..c8426bd
 +}
 diff --git a/spotify_player/src/downloads/managed_items.rs b/spotify_player/src/downloads/managed_items.rs
 new file mode 100644
-index 0000000..da46e53
+index 0000000..c509127
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed_items.rs
-@@ -0,0 +1,354 @@
+@@ -0,0 +1,429 @@
 +//! Public cache state and covers, plus explicit single-title downloads/playback.
 +//! Audio, keys and filesystem paths stay in the private native store.
 +use super::{
@@ -2941,6 +3041,81 @@ index 0000000..da46e53
 +        bail!("track_unavailable: Spotify marks this title unavailable");
 +    }
 +    operation().await
++}
++
++pub(super) fn remove_track(paths: &Paths, uri: &str, track_uri: &str) -> Result<()> {
++    let _lock = Lock::take(&paths.root.join("sync.lock"))?;
++    ensure!(
++        track_uri.starts_with("spotify:track:") && track_uri.len() == 36,
++        "unsupported_item"
++    );
++    if let Ok(record) = read_json::<super::SessionRecord>(&paths.root.join("playback.json")) {
++        ensure!(
++            !record.process.alive() || record.uri != uri,
++            "busy: snapshot is playing"
++        );
++    }
++    let id = account_id()?.context("authentication_required")?;
++    remove_track_files(paths, &id, uri, track_uri)?;
++    publish_catalog(paths, None)
++}
++
++pub(super) fn remove_track_files(
++    paths: &Paths,
++    id: &str,
++    uri: &str,
++    track_uri: &str,
++) -> Result<()> {
++    let mut roots = vec![paths.pending(id, uri)];
++    let generations = paths.account(id).join("generations");
++    let prefix = hash(uri.as_bytes()) + "-";
++    if generations.is_dir() {
++        for item in fs::read_dir(&generations)? {
++            let item = item?;
++            if item.file_type()?.is_dir() && item.file_name().to_string_lossy().starts_with(&prefix)
++            {
++                roots.push(item.path());
++            }
++        }
++    }
++    for root in roots {
++        let library = Library::new(root);
++        let cover = library
++            .track(track_uri)
++            .ok()
++            .and_then(|track| track.cover_url);
++        if let Err(error) = library.remove(track_uri) {
++            if error
++                .downcast_ref::<std::io::Error>()
++                .is_none_or(|e| e.kind() != std::io::ErrorKind::NotFound)
++            {
++                return Err(error);
++            }
++        }
++        if let Some(url) = cover {
++            if !library
++                .tracks()?
++                .iter()
++                .any(|track| track.cover_url.as_deref() == Some(&url))
++            {
++                let path = library.cover_path(&url);
++                if path.exists() {
++                    fs::remove_file(path)?;
++                }
++            }
++        }
++    }
++    let mut index = load_index(paths, id)?;
++    if let Some(entry) = index.playlists.get_mut(uri) {
++        let library = entry_library(paths, id, entry)?;
++        entry.bytes = entry
++            .tracks
++            .iter()
++            .filter_map(|track| library.cached_track(&track.uri).map(|saved| saved.bytes))
++            .sum();
++        super::save_index(paths, &index)?;
++    }
++    Ok(())
 +}
 +
 +pub(super) async fn cache_track(paths: &Paths, args: &ArgMatches, uri: &str) -> Result<()> {

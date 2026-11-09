@@ -48,12 +48,12 @@ class PackageContract(unittest.TestCase):
         self.assertEqual(files, self.files)
 
     def test_2_5_1_offline_package_and_known_upgrade_sources(self):
-        self.manifest['version'] = '2.5.1-offline'
+        self.manifest['version'] = '2.5.1+offline'
         for name, data in self.files.items():
-            self.files[name] = data.replace(b'2.4.21-offline.1', b'2.5.1-offline')
+            self.files[name] = data.replace(b'2.4.21-offline.1', b'2.5.1+offline')
         self.archive()
-        self.assertEqual(install.package(self.path)[0]['version'], '2.5.1-offline')
-        for version in ('2.4.21', '2.4.21-offline.5', '2.5.0', '2.5.1', '2.5.1-offline'):
+        self.assertEqual(install.package(self.path)[0]['version'], '2.5.1+offline')
+        for version in ('2.4.21', '2.4.21-offline.5', '2.5.0', '2.5.1', '2.5.1-offline', '2.5.1+offline'):
             self.assertTrue(install.compatible_base(version, '2.5.1'))
         for version in ('1.3.0', '2.5.1-unknown', '2.4.21-offline.evil'):
             self.assertFalse(install.compatible_base(version, '2.5.1'))
