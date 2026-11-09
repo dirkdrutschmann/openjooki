@@ -72,6 +72,7 @@
     volume_test_unavailable: 'Ce test de volume est indisponible pour le moment.',
     of_spotify_unavailable: 'Indisponible sur Spotify',
     of_show_unavailable: 'Afficher les titres indisponibles',
+    of_unavailable_list: 'Titres indisponibles', of_unavailable_none: 'Aucun titre indisponible dans cette playlist.', of_search_empty: 'Aucun titre disponible correspondant.',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' titre indisponible masqué sur cette page' : ' titres indisponibles masqués sur cette page'); },
     of_filtered_empty: 'Aucun titre disponible sur cette page. Choisissez Suivant pour continuer.',
     of_cache_item: 'Enregistrer ce titre hors ligne',

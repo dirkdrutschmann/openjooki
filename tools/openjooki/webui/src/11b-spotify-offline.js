@@ -53,39 +53,75 @@
     var inUse = offlineActive && np.playlistId === id, storage = obj(o.storage), mode = obj(o.modes)[id] || 'online';
     var metadataReady = o.metadata_ready || premium;
     if (!metadataReady) tracks = [];
+    var rawQuery = offlineTitleSearches[pageKey] || '', query = rawQuery.trim().toLowerCase();
+    var scan = metadataReady && (offlineShowUnavailable || query) && (total > 0 || meta.phase === 'complete') ? offlineScanTitles(id, p, pageKey, total, snap.snapshot_id, latest) : null;
+    var catalog = scan && scan.done ? offlinePlaylistTitles(p, pageKey, total) : [];
+    var availableCatalog = catalog.filter(function (item) { return !spotifyTrackUnavailable(item.track) && (!query || offlineTitleMatches(item, query)); });
+    var unavailableCatalog = catalog.filter(function (item) { return spotifyTrackUnavailable(item.track) && (!query || offlineTitleMatches(item, query)); });
+    var searchOffset = Number(offlineTitleSearchOffsets[pageKey]) || 0;
+    var unavailableOffset = Number(offlineUnavailableOffsets[pageKey]) || 0;
+    if (unavailableOffset >= unavailableCatalog.length) unavailableOffset = offlineUnavailableOffsets[pageKey] = Math.max(0, Math.floor(Math.max(0, unavailableCatalog.length - 1) / 50) * 50);
+    var pageRows = query ? scan && scan.done ? availableCatalog.slice(searchOffset, searchOffset + 50) : []
+      : tracks.map(function (track, i) { return { track: track, position: offset + i + 1 }; }).filter(function (item) { return !spotifyTrackUnavailable(item.track); });
+    var pageCount = query ? availableCatalog.length : total, pageStart = query ? searchOffset : offset;
+    var scanLoaded = scan ? offlineTitleScanLoaded(pageKey, total) : 0;
     function pageTo(next, backwards) {
       var history = offlinePageBack[pageKey] || (offlinePageBack[pageKey] = []);
       if (backwards) next = history.length ? history.pop() : Math.max(0, wanted - 50);
       else history.push(wanted);
       offlinePageOffsets[pageKey] = next; askSpotifyTitles(id, next, true);
     }
-    if (metadataReady && ((!meta.phase && (!ready || !tracks.length || tracks.length < total)) || meta.from_disk || (meta.fetched_at && Date.now() - meta.fetched_at > 300000))) askSpotifyTitles(id, wanted, false);
+    if (metadataReady && !scan && ((!meta.phase && (!ready || !tracks.length || tracks.length < total)) || meta.from_disk || (meta.fetched_at && Date.now() - meta.fetched_at > 300000))) askSpotifyTitles(id, wanted, false);
+    function retryScan() { scan.error = null; scan.done = false; scan.waiting = null; scan.started = false; render(); }
+    function trackRow(item, unavailable) {
+      var track = item.track, position = item.position, blocked = unavailable || spotifyTrackUnavailable(track);
+      var selected = np.service === 'SPOTIFY_OFFLINE' && np.playlistId === id && np.trackIndex === position;
+      return h('li', { class: 'offline-track' + (selected ? ' selected' : '') + (blocked ? ' unavailable' : ''), 'data-track-index': String(position) },
+        h('span', { class: 'offline-art', 'aria-hidden': 'true' }, track.image ? h('img', { src: track.image, loading: 'lazy', alt: '', onerror: function (e) { e.target.style.display = 'none'; } }) : null, h('span', null, selected ? '♪' : String(position))),
+        h('span', { class: 'offline-track-info' }, h('span', { class: 'title' }, track.name || '—'),
+          h('span', { class: 'small muted' }, arr(track.artists).join(', ')),
+          h('span', { class: 'small muted' }, fmtTime((track.duration_ms || 0) / 1000) + ' · ' + t(track.cached ? 'of_item_stored' : track.problem === 'track_unavailable' ? 'of_spotify_unavailable' : track.problem ? 'of_item_unavailable' : 'of_online_badge'))),
+        spotifyTrackActions(Object.assign({ id: id }, p), track, position, busy));
+    }
     var other = userPlaylists().filter(function (item) { return item.spotify && item.spotify.uri === active.uri; })[0];
     function command(kind) { send(kind, { playlistId: id }); }
     var titleBlock = h('section', { class: 'spotify-titles', 'data-k': 'spotify-titles' },
-      h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, total ? String(total) : '')),
+      h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, query && scan && scan.done ? String(availableCatalog.length) : total ? String(total) : '')),
+      h('div', { class: 'search offline-title-search' }, icon('search'), h('input', { class: 'input', type: 'search', placeholder: t('search'), 'aria-label': t('search'), value: rawQuery, 'data-k': 'offline-title-search',
+        oninput: function (e) { offlineTitleSearches[pageKey] = e.target.value; offlineTitleSearchOffsets[pageKey] = 0; offlineUnavailableOffsets[pageKey] = 0; render(); } })),
       h('label', { class: 'offline-filter' }, h('input', { type: 'checkbox', checked: offlineShowUnavailable, 'data-k': 'show-unavailable',
         onchange: function (e) { offlineShowUnavailable = e.target.checked; lsSet('oj.offline.unavailable', offlineShowUnavailable ? '1' : '0'); render(); } }), h('span', null, t('of_show_unavailable'))),
       !offlineShowUnavailable && unavailableCount ? h('p', { class: 'small muted', 'data-k': 'offline-hidden' }, t('of_hidden_unavailable', unavailableCount)) : null,
-      !offlineShowUnavailable && tracks.length && unavailableCount === tracks.length ? h('p', { class: 'small muted', 'data-k': 'offline-filter-empty' }, t('of_filtered_empty')) : null,
+      !offlineShowUnavailable && !query && tracks.length && unavailableCount === tracks.length ? h('p', { class: 'small muted', 'data-k': 'offline-filter-empty' }, t('of_filtered_empty')) : null,
       !metadataReady ? h('p', { class: 'small muted' }, t('of_titles_login'), ' ', h('a', { href: '#/settings/spotify' }, t('of_connect'))) : null,
-      meta.phase === 'loading' && !tracks.length ? h('p', { class: 'small muted', role: 'status' }, t('of_titles_loading')) : null,
+      scan && !scan.done && query ? h('div', { class: 'offline-progress offline-scan-progress', role: 'status', 'data-k': 'title-search-progress' }, h('p', { class: 'small muted' }, t('of_titles_loading') + ' · ' + scanLoaded + ' / ' + total), h('progress', { max: Math.max(1, total), value: scanLoaded, 'aria-label': t('of_titles_loading') })) : null,
+      meta.phase === 'loading' && !tracks.length && !query ? h('p', { class: 'small muted', role: 'status' }, t('of_titles_loading')) : null,
       meta.phase === 'error' ? h('div', { class: 'offline-notice', role: 'alert' }, offlineErrorText(meta.error, 'metadata'),
         h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, offset, true); } }, t('of_retry'))) : null,
-      tracks.length ? h('ol', { class: 'offline-tracks', start: offset + 1, 'data-k': 'offline-tracks' }, tracks.map(function (track, i) {
-        if (!offlineShowUnavailable && spotifyTrackUnavailable(track)) return null;
-        var position = offset + i + 1, selected = np.service === 'SPOTIFY_OFFLINE' && np.playlistId === id && np.trackIndex === position;
-        return h('li', { class: 'offline-track' + (selected ? ' selected' : '') + (spotifyTrackUnavailable(track) ? ' unavailable' : ''), 'data-track-index': String(offset + i + 1) },
-          h('span', { class: 'offline-art', 'aria-hidden': 'true' }, track.image ? h('img', { src: track.image, loading: 'lazy', alt: '', onerror: function (e) { e.target.style.display = 'none'; } }) : null, h('span', null, selected ? '♪' : String(position))),
-          h('span', { class: 'offline-track-info' }, h('span', { class: 'title' }, track.name || '—'),
-            h('span', { class: 'small muted' }, arr(track.artists).join(', ')),
-            h('span', { class: 'small muted' }, fmtTime((track.duration_ms || 0) / 1000) + ' · ' + t(track.cached ? 'of_item_stored' : track.problem === 'track_unavailable' ? 'of_spotify_unavailable' : track.problem ? 'of_item_unavailable' : 'of_online_badge'))),
-          spotifyTrackActions(Object.assign({ id: id }, p), track, position, busy));
-      })) : metadataReady && !meta.phase ? h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, 0, true); } }, t('of_load_titles')) : null,
-      tracks.length && (offset > 0 || offset + tracks.length < total) ? h('div', { class: 'offline-paging' },
-        h('button', { class: 'btn ghost', disabled: offset === 0 || meta.phase === 'loading', onclick: function () { pageTo(0, true); } }, t('of_previous')),
-        h('span', { class: 'small muted' }, (offset + 1) + '–' + (offset + tracks.length) + ' / ' + total),
-        h('button', { class: 'btn ghost', disabled: offset + tracks.length >= total || meta.phase === 'loading', onclick: function () { pageTo(offset + tracks.length, false); } }, t('of_next'))) : null);
+      scan && scan.error && query && !offlineShowUnavailable ? h('div', { class: 'offline-notice', role: 'alert', 'data-k': 'title-scan-error' }, offlineErrorText(scan.error, 'metadata'), h('button', { class: 'btn ghost', onclick: retryScan }, t('of_retry'))) : null,
+      query && scan && scan.done && !availableCatalog.length ? h('p', { class: 'small muted', 'data-k': 'offline-search-empty' }, t('of_search_empty')) : null,
+      pageRows.length ? h('ol', { class: 'offline-tracks', start: pageStart + 1, 'data-k': 'offline-tracks' }, pageRows.map(function (item) { return trackRow(item, false); })) : null,
+      !query && tracks.length && !pageRows.length && !unavailableCount ? h('p', { class: 'small muted' }, t('of_filtered_empty')) : null,
+      !scan && metadataReady && !meta.phase ? h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, 0, true); } }, t('of_load_titles')) : null,
+      query && scan && scan.done && availableCatalog.length > 50 || !query && tracks.length && (offset > 0 || offset + tracks.length < total) ? h('div', { class: 'offline-paging', 'data-k': 'available-paging' },
+        h('button', { class: 'btn ghost', disabled: pageStart === 0 || (scan && !scan.done), onclick: function () {
+          if (query) { offlineTitleSearchOffsets[pageKey] = Math.max(0, searchOffset - 50); render(); } else pageTo(0, true);
+        } }, t('of_previous')),
+        h('span', { class: 'small muted' }, (pageStart + 1) + '–' + (query ? Math.min(pageStart + pageRows.length, pageCount) : Math.min(offset + tracks.length, total)) + ' / ' + pageCount),
+        h('button', { class: 'btn ghost', disabled: (query ? pageStart + 50 >= pageCount : offset + tracks.length >= total) || (scan && !scan.done), onclick: function () {
+          if (query) { offlineTitleSearchOffsets[pageKey] = searchOffset + 50; render(); } else pageTo(offset + tracks.length, false);
+        } }, t('of_next'))) : null,
+      offlineShowUnavailable ? h('section', { class: 'spotify-titles spotify-unavailable', 'data-k': 'unavailable-list' },
+        h('div', { class: 'offline-heading' }, h('h3', null, t('of_unavailable_list')), h('span', { class: 'offline-count' }, scan && scan.done ? String(unavailableCatalog.length) : '')),
+        !metadataReady ? null : scan && !scan.done && !scan.error ? h('div', { class: 'offline-progress offline-scan-progress', role: 'status', 'data-k': 'unavailable-progress' },
+          h('p', { class: 'small muted' }, t('of_titles_loading') + ' · ' + scanLoaded + ' / ' + total), h('progress', { max: Math.max(1, total), value: scanLoaded, 'aria-label': t('of_titles_loading') })) : null,
+        scan && scan.error ? h('div', { class: 'offline-notice', role: 'alert', 'data-k': 'unavailable-scan-error' }, offlineErrorText(scan.error, 'metadata'), h('button', { class: 'btn ghost', onclick: retryScan }, t('of_retry'))) : null,
+        scan && scan.done && !unavailableCatalog.length ? h('p', { class: 'small muted' }, query ? t('of_search_empty') : t('of_unavailable_none')) : null,
+        scan && scan.done && unavailableCatalog.length ? h('ol', { class: 'offline-tracks', start: unavailableOffset + 1, 'data-k': 'offline-unavailable-tracks' }, unavailableCatalog.slice(unavailableOffset, unavailableOffset + 50).map(function (item) { return trackRow(item, true); })) : null,
+        scan && scan.done && unavailableCatalog.length > 50 ? h('div', { class: 'offline-paging', 'data-k': 'unavailable-paging' },
+          h('button', { class: 'btn ghost', disabled: unavailableOffset === 0, onclick: function () { offlineUnavailableOffsets[pageKey] = Math.max(0, unavailableOffset - 50); render(); } }, t('of_previous')),
+          h('span', { class: 'small muted' }, (unavailableOffset + 1) + '–' + Math.min(unavailableOffset + 50, unavailableCatalog.length) + ' / ' + unavailableCatalog.length),
+          h('button', { class: 'btn ghost', disabled: unavailableOffset + 50 >= unavailableCatalog.length, onclick: function () { offlineUnavailableOffsets[pageKey] = unavailableOffset + 50; render(); } }, t('of_next'))) : null) : null);
     if (!premium) return h('div', { class: 'card offline-panel', 'data-k': 'spotify-metadata' }, titleBlock);
     return h('section', { class: 'card offline-panel', 'data-k': 'spotify-offline' },
       h('div', { class: 'offline-heading' }, h('h3', null, t('of_title')),

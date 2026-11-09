@@ -55,6 +55,7 @@
     volume_test_unavailable: 'Dieser Lautstärketest ist gerade nicht verfügbar.',
     of_spotify_unavailable: 'Bei Spotify nicht verfügbar',
     of_show_unavailable: 'Nicht verfügbare Titel anzeigen',
+    of_unavailable_list: 'Nicht verfügbare Titel', of_unavailable_none: 'In dieser Wiedergabeliste sind keine nicht verfügbaren Titel.', of_search_empty: 'Keine passenden verfügbaren Titel.',
     of_hidden_unavailable: function (n) { return n + (n === 1 ? ' nicht verfügbarer Titel auf dieser Seite ausgeblendet' : ' nicht verfügbare Titel auf dieser Seite ausgeblendet'); },
     of_filtered_empty: 'Auf dieser Seite sind keine verfügbaren Titel. Blättere mit „Weiter“ zur nächsten Seite.',
     of_cache_item: 'Diesen Titel offline speichern',

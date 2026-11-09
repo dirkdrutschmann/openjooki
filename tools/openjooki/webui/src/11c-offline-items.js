@@ -1,4 +1,5 @@
   var offlineShowUnavailable = lsGet('oj.offline.unavailable') === '1';
+  var offlineTitleScans = {}, offlineTitleSearches = {}, offlineTitleSearchOffsets = {}, offlineUnavailableOffsets = {};
   function spotifyTrackUnavailable(track) { return !track.cached && !!track.problem; }
   // Metadata pages survive reloads. Audio availability always comes from the current account.
   var offlineTitleAccountId = null;
@@ -8,6 +9,7 @@
     if (!account && !o.catalog_loaded) return;
     if (offlineTitleAccountId === account) return;
     offlineTitleAccountId = account;
+    offlineTitleScans = {}; offlineTitleSearches = {}; offlineTitleSearchOffsets = {}; offlineUnavailableOffsets = {};
     try {
       var prefix = offlineTitlePrefix();
       Object.keys(localStorage).forEach(function (k) {
@@ -22,6 +24,10 @@
       if (obj(old[uri]).snapshot_id === obj(fresh[uri]).snapshot_id && obj(old[uri]).ready === obj(fresh[uri]).ready) return;
       var prefix = account + ':' + uri + ':';
       Object.keys(offlinePreviewCache).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlinePreviewCache[k]; });
+      Object.keys(offlineTitleScans).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlineTitleScans[k]; });
+      [offlineTitleSearches, offlineTitleSearchOffsets, offlineUnavailableOffsets].forEach(function (map) {
+        Object.keys(map).forEach(function (k) { if (k.indexOf(prefix) === 0) delete map[k]; });
+      });
       offlinePreviewAsked = {};
       try { var disk = offlineTitlePrefix() + prefix; Object.keys(localStorage).forEach(function (k) { if (k.indexOf(disk) === 0) localStorage.removeItem(k); }); } catch (e) {}
     });
@@ -48,6 +54,55 @@
       while (keys.length >= 48) localStorage.removeItem(keys.shift());
       lsSet(key, JSON.stringify(saved));
     } catch (e) {}
+  }
+  function offlineScanTitles(id, p, pageKey, total, snapshot, latest) {
+    var scan = offlineTitleScans[pageKey] || (offlineTitleScans[pageKey] = { total: total, waiting: null, request: null, started: false });
+    if (scan.total !== total) scan = offlineTitleScans[pageKey] = { total: total, waiting: null, request: null, started: false };
+    var latestOffset = Number(latest.offset) || 0;
+    if (scan.waiting !== null) {
+      if (latest.phase === 'loading' && latestOffset === scan.waiting) scan.started = true;
+      else if (latest.phase === 'loading' && !scan.started && latestOffset !== scan.waiting) {
+        scan.waiting = latestOffset; scan.request = latest.request; scan.started = true;
+      } else if (latestOffset === scan.waiting && (scan.started || latest.request !== scan.request)) {
+        if (latest.phase === 'error') scan.error = latest.error || 'network_timeout';
+        else if (latest.phase === 'complete') { scan.waiting = null; scan.started = false; scan.error = null; }
+      }
+      if (scan.waiting !== null) return scan;
+    }
+    if (scan.error || scan.done) return scan;
+    for (var offset = 0; offset < total; offset += 50) {
+      var key = pageKey + ':' + offset, page = offlinePreviewCache[key];
+      if (!page && obj(S.spotifyOffline).account_id) page = offlinePreviewCache[key] = offlineLoadTitles(p.spotify.uri, offset, snapshot);
+      if (page && page.phase === 'complete' && (!snapshot || !page.snapshot_id || page.snapshot_id === snapshot)) continue;
+      if (latest.phase === 'loading') { scan.waiting = latestOffset; scan.request = latest.request; scan.started = true; return scan; }
+      scan.waiting = offset; scan.request = latest.request; scan.started = false;
+      askSpotifyTitles(id, offset, true); return scan;
+    }
+    scan.done = true;
+    return scan;
+  }
+  function offlineTitleScanLoaded(pageKey, total) {
+    var n = 0;
+    for (var offset = 0; offset < total; offset += 50) {
+      var page = offlinePreviewCache[pageKey + ':' + offset];
+      if (page && page.phase === 'complete') n += arr(page.tracks).length;
+    }
+    return Math.min(total, n);
+  }
+  function offlinePlaylistTitles(p, pageKey, total) {
+    var out = [];
+    for (var offset = 0; offset < total; offset += 50) {
+      var page = offlinePreviewCache[pageKey + ':' + offset];
+      if (!page || page.phase !== 'complete') continue;
+      arr(page.tracks).forEach(function (track, i) {
+        out.push({ track: spotifyStoredTrack(p, track), position: offset + i + 1 });
+      });
+    }
+    return out;
+  }
+  function offlineTitleMatches(item, query) {
+    var track = item.track;
+    return [track.name, arr(track.artists).join(' '), track.album].join(' ').toLowerCase().indexOf(query) >= 0;
   }
   function spotifyStoredTrack(p, track) {
     var o = obj(S.spotifyOffline), snap = obj(obj(o.playlists)[p.spotify.uri]), result = snap.ready && track.cached === undefined && !track.problem ? Object.assign({}, track, { cached: true }) : track;
