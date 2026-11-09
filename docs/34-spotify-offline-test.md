@@ -196,7 +196,7 @@ refresh in the background. Local album covers use opaque, account-scoped HTTP ro
 filesystem paths, credentials and encryption keys remain private. Playlist card footers
 reserve space for long labels beside Play.
 
-Validation before deployment: 475 Lua specs, 71 native SDK tests, minimal-feature
+Validation before deployment: 476 Lua specs, 71 native SDK tests, minimal-feature
 Clippy, the MIPS build, 16 offline browser checks, package/source-profile checks and the
 existing volume, backend and Spotify regression suites. The player-stability test now
 disables the night schedule explicitly: otherwise an active automatic sleep timer made

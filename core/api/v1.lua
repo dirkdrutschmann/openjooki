@@ -259,7 +259,7 @@ H.OJ_OFFLINE_AUTH_HELPER = function(doc, p) return offline.on_auth_helper(doc, p
 H.OJ_OFFLINE_PREVIEW = function(doc, p, ev) return offline.on_preview_request(doc, { playlist = p.playlistId, offset = p.offset, now = ev.now }) end
 H.OJ_OFFLINE_CANCEL_QUEUED = function(doc, p) return offline.on_cancel_queued(doc, { playlist = p.playlistId }) end
 H.OJ_OFFLINE_RESUME_QUEUE = function(doc) return offline.on_resume_queue(doc) end
-H.OJ_OFFLINE_PLAY = function(doc, p, ev) return offline.on_play(doc, { playlist = p.playlistId, index = tonumber(p.trackIndex), now = ev.now }) end
+H.OJ_OFFLINE_PLAY = function(doc, p, ev) return offline.on_play(doc, { playlist = p.playlistId, index = tonumber(p.trackIndex), track_uri = p.trackUri, now = ev.now }) end
 H.OJ_OFFLINE_CACHE_TRACK = function(doc, p, ev) return require("services.spotify_offline_items").on_cache(doc, { playlist = p.playlistId, index = p.trackIndex, track_uri = p.trackUri, play = p.play == true, now = ev.now }) end
 H.OJ_OFFLINE_SYNC = function(doc, p, ev) return offline.on_sync(doc, { playlist = p.playlistId, now = ev.now }) end
 H.OJ_OFFLINE_REMOVE = function(doc, p) return offline.on_remove(doc, { playlist = p.playlistId }) end
