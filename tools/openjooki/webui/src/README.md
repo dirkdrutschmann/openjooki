@@ -2,8 +2,8 @@
 
 `app.js`, the file the Jooki serves, is these files put end to end by `../build.py`, in name
 order, inside one closure. Nothing is transformed: no bundler, no minifier, no module system.
-The shared bundle stays a single file for the device. CI allows 336 KiB for four languages
-(previously 256 KiB for three); the CSS cap stays at 64 KiB. Edit here, then:
+The shared bundle stays a single file for the device. CI allows 337 KiB for four languages and
+the audiobook-library controls (previously 336 KiB); the CSS cap stays at 64 KiB. Edit here, then:
 
 ```sh
 python3 tools/openjooki/webui/build.py          # writes ../app.js
@@ -33,6 +33,7 @@ when it was one file of 3 000 lines. The order matters only for what runs while 
 | `18-settings.js`, `19-bedtime.js`, `20-sort.js` | Settings and its topic pages; night mode and sleep timer; sorting a playlist |
 | `21-player.js`, `22-render.js`, `23-boot.js` | the player bar and sheet; `render()`; start-up |
 
-The combined device bundle keeps a 336 KiB CI budget (previously 320 KiB).
-The extra allowance covers account-bound title-page caching, individual offline
-controls and their four translations; images remain separate cached files.
+The combined device bundle keeps a 337 KiB CI budget (previously 336 KiB).
+The extra allowance covers account-bound title-page caching, individual offline controls,
+the audiobook library's bulk selection and playlist membership labels; images remain separate
+cached files.

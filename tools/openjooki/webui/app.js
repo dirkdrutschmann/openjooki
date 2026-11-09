@@ -2867,14 +2867,21 @@
     var nAll = Object.keys(S.db.tracks).length;
     var allChosen = all.length > 0 && chosen.length === all.length;
     function bookFolder(book) {
+      var bookChosen = book.tracks.length > 0 && book.tracks.every(function (k) { return !!ui.sel[k]; });
       return h('details', { class: 'lib-folder', open: !!ui.libOpen[book.id], ontoggle: function (e) { ui.libOpen[book.id] = e.target.open; } },
         h('summary', { class: 'lib-folder-head' },
           h('span', { class: 'lib-folder-icon' }, icon('folder')),
           h('span', { class: 'lib-folder-title ellipsis' }, book.title),
           h('span', { class: 'lib-folder-count small muted' }, t('n_tracks', book.tracks.length))),
+        h('div', { class: 'actions lib-folder-actions', style: 'justify-content:flex-end;margin:2px 14px 8px 37px' },
+          h('button', { class: 'btn ghost', 'data-k': 'book-select-all', 'data-book-id': book.id, onclick: function () {
+            book.tracks.forEach(function (k) { ui.sel[k] = !bookChosen; }); render();
+          } }, bookChosen ? t('select_none') : t('select_all'))),
         h('ul', { class: 'list lib-folder-tracks' }, book.tracks.map(function (k) {
+          var w = where[k];
           return trackCheckRow(k, { track: k, checked: !!ui.sel[k], set: function (v) { ui.sel[k] = v; render(); },
-            title: trackTitle(k), sub: trackSub(S.db.tracks[k], true) });
+            title: trackTitle(k), sub: trackSub(S.db.tracks[k], true),
+            inner: w && w.length ? h('div', { class: 'sub ellipsis' }, t('in_playlists') + w.join(', ')) : null });
         })));
     }
     return [
