@@ -52,7 +52,7 @@
     var name = '', url = '', err = '';
     function ok() {
       var u = url.trim();
-      if (!/^https?:\/\/[\w\[]/i.test(u)) { err = t('radio_url_bad'); renderModal(); return; }
+      if (!/^http:\/\/[\w\[]/i.test(u)) { err = t('radio_url_bad'); renderModal(); return; }
       send('PLAYLIST_ADD_STREAM', { playlistId: p.id, title: name.trim() || u, url: u });
       closeModal();
     }
@@ -61,7 +61,7 @@
       render: function () {
         return [h('h3', null, t('radio_title')),
           field(t('radio_name'), { 'data-k': 'rname', value: name, maxlength: '100', oninput: function (e) { name = e.target.value; } }),
-          field(t('radio_url'), { 'data-k': 'rurl', type: 'url', inputmode: 'url', value: url, placeholder: 'https://',
+          field(t('radio_url'), { 'data-k': 'rurl', type: 'url', inputmode: 'url', value: url, placeholder: 'http://',
             oninput: function (e) { url = e.target.value; }, onkeydown: function (e) { if (e.key === 'Enter') ok(); } }),
           err ? h('div', { class: 'banner danger' }, err) : null,
           modalFoot(t('add'), ok)];

@@ -44,8 +44,8 @@
     deleted: 'Supprimé', choose_playlist: 'Choisir une playlist', added: function (n) { return n + (n > 1 ? ' morceaux ajoutés' : ' morceau ajouté'); },
     already_in: 'déjà dedans', add: 'Ajouter', add_n: function (n) { return 'Ajouter ' + n; },
     library_empty: 'Aucun morceau sur le Jooki.', unused_empty: 'Tous les morceaux sont dans une playlist.',
-    radio: 'Radio', radio_title: 'Ajouter une radio web', radio_name: 'Nom de la radio', radio_url: 'Adresse du flux (http:// ou https://)',
-    radio_url_bad: 'L\'adresse doit commencer par http:// ou https://',
+    radio: 'Radio', radio_title: 'Ajouter une radio web', radio_name: 'Nom de la radio', radio_url: 'Adresse du flux (http:// uniquement)',
+    radio_url_bad: 'Ce Jooki ne peut pas lire les radios HTTPS. Utilisez une adresse http://.',
     tokens_intro: 'Chaque personnage lance une playlist. Tous les jetons d\'un même personnage (par exemple tous tes dragons noirs) font exactement la même chose.',
     tokens_hint: 'Pose un jeton sur le Jooki pour le faire apparaître ici.',
     nfc_tag: 'Tag NFC', foreign_hint: 'Un autre objet NFC (un amiibo, un autocollant) apparaît aussi ici quand tu le poses : il lance sa playlist, mais le retirer ne met pas en pause, et deux de suite demandent souvent un vrai jeton Jooki entre les deux. Utilise le bouton pour la pause.',
@@ -131,7 +131,7 @@
     err_readonly: 'Action impossible sur les morceaux non utilisés.',
     err_internal: 'Le Jooki a rencontré une erreur. Réessaie.',
     err_empty_title: 'Le nom ne peut pas être vide.',
-    err_radio: 'Adresse de radio invalide.',
+    err_radio: 'Adresse de radio invalide. Ce Jooki accepte uniquement les flux HTTP.',
     err_gone: 'Cet élément n\'existe plus.',
     err_generic: 'Le Jooki a refusé l\'action.',
     err_unknown_char: 'Personnage inconnu.',
@@ -249,8 +249,8 @@
     deleted: 'Deleted', choose_playlist: 'Choose a playlist', added: function (n) { return n + (n === 1 ? ' track added' : ' tracks added'); },
     already_in: 'already in', add: 'Add', add_n: function (n) { return 'Add ' + n; },
     library_empty: 'No track on the Jooki.', unused_empty: 'Every track is in a playlist.',
-    radio: 'Radio', radio_title: 'Add a web radio', radio_name: 'Radio name', radio_url: 'Stream address (http:// or https://)',
-    radio_url_bad: 'The address must start with http:// or https://',
+    radio: 'Radio', radio_title: 'Add a web radio', radio_name: 'Radio name', radio_url: 'Stream address (http:// only)',
+    radio_url_bad: 'This Jooki cannot play HTTPS radio streams. Use an http:// address.',
     tokens_intro: 'Each character starts one playlist. All tokens of the same character (e.g. all your black dragons) do exactly the same thing.',
     tokens_hint: 'Put a token on the Jooki to see it here.',
     nfc_tag: 'NFC tag', foreign_hint: 'Another NFC object (an amiibo, a sticker) also shows up here when you put it on: it starts its playlist, but taking it off does not pause, and two of them in a row often need a real Jooki token in between. Use the button to pause.',
@@ -336,7 +336,7 @@
     err_readonly: 'Not possible on unused tracks.',
     err_internal: 'The Jooki hit an error. Please retry.',
     err_empty_title: 'The name cannot be empty.',
-    err_radio: 'Invalid radio address.',
+    err_radio: 'Invalid radio address. This Jooki only supports HTTP streams.',
     err_gone: 'This item no longer exists.',
     err_generic: 'The Jooki refused the action.',
     err_unknown_char: 'Unknown character.',
@@ -446,7 +446,7 @@
     deleted: 'Gelöscht', choose_playlist: 'Wiedergabeliste auswählen', added: function (n) { return n + ' Titel hinzugefügt'; },
     already_in: 'bereits in', add: 'Hinzufügen', add_n: function (n) { return n + ' hinzufügen'; },
     library_empty: 'Noch keine Titel auf dem Jooki.', unused_empty: 'Alle Titel gehören zu einer Wiedergabeliste.',
-    radio: 'Radio', radio_title: 'Internetradio hinzufügen', radio_name: 'Name des Senders', radio_url: 'Streamadresse (http:// oder https://)', radio_url_bad: 'Die Adresse muss mit http:// oder https:// beginnen.',
+    radio: 'Radio', radio_title: 'Internetradio hinzufügen', radio_name: 'Name des Senders', radio_url: 'Streamadresse (nur http://)', radio_url_bad: 'Dieser Jooki kann keine HTTPS-Radiostreams abspielen. Verwende eine http://-Adresse.',
     tokens_intro: 'Jede Figurenart startet eine Wiedergabeliste. Alle Figuren derselben Art (zum Beispiel alle schwarzen Drachen) machen genau dasselbe.',
     tokens_hint: 'Stelle eine Figur auf den Jooki, damit sie hier erscheint.', nfc_tag: 'NFC-Tag',
     foreign_hint: 'Auch andere NFC-Objekte (Amiibo, Aufkleber) erscheinen hier beim Auflegen. Sie starten ihre Wiedergabeliste. Beim Wegnehmen wird die Wiedergabe jedoch nicht angehalten. Zwischen zwei Verwendungen muss oft eine echte Jooki-Figur aufgelegt werden. Zum Anhalten die Taste drücken.',
@@ -491,7 +491,7 @@
     live: 'Live', volume: 'Lautstärke', uploading: 'Wird übertragen', processing: 'Wird auf dem Jooki verarbeitet…', done: 'Hinzugefügt', queued: 'Wartet',
     up_too_small: 'Datei ist leer oder zu klein', up_no_space: 'Nicht genug Speicherplatz auf dem Jooki', up_net: 'Übertragung fehlgeschlagen (Verbindung unterbrochen?)', up_type: 'Dieses Audioformat wird nicht unterstützt', up_fail: 'Der Jooki konnte diese Datei nicht hinzufügen', up_timeout: 'Keine Antwort vom Jooki', uploads_running: 'Übertragungen laufen. Wenn du die Seite verlässt, werden sie abgebrochen.', clear_done: 'Abgeschlossene Übertragungen ausblenden', up_retrying: function (n, m) { return 'Verbindung unterbrochen, neuer Versuch (' + n + '/' + m + ')…'; }, up_retry: 'Erneut versuchen',
     wifi_good: 'Gutes Signal', wifi_fair: 'Mittleres Signal', wifi_weak: 'Schwaches Signal', wifi_advice: 'Stelle den Jooki näher an einen WLAN-Zugangspunkt. Musik funktioniert ohne WLAN. Nur diese Seite und Übertragungen benötigen es.', wifi_bt: 'Umgezogen, neuer Router oder neues Passwort? Verbinde ihn per Bluetooth von einem Android-Handy oder Computer neu: ', wifi_bt_name: function (n) { return 'In der Liste heißt er ' + n + '.'; },
-    err_readonly: 'Bei unbenutzten Titeln nicht möglich.', err_internal: 'Beim Jooki ist ein Fehler aufgetreten. Bitte erneut versuchen.', err_empty_title: 'Der Name darf nicht leer sein.', err_radio: 'Ungültige Radioadresse.', err_gone: 'Diesen Eintrag gibt es nicht mehr.', err_generic: 'Der Jooki hat die Aktion abgelehnt.', err_unknown_char: 'Unbekannte Figur.', files_hint: 'MP3, M4A, OGG, FLAC, WAV…', open_player: 'Player öffnen',
+    err_readonly: 'Bei unbenutzten Titeln nicht möglich.', err_internal: 'Beim Jooki ist ein Fehler aufgetreten. Bitte erneut versuchen.', err_empty_title: 'Der Name darf nicht leer sein.', err_radio: 'Ungültige Radioadresse. Dieser Jooki unterstützt nur HTTP-Streams.', err_gone: 'Diesen Eintrag gibt es nicht mehr.', err_generic: 'Der Jooki hat die Aktion abgelehnt.', err_unknown_char: 'Unbekannte Figur.', files_hint: 'MP3, M4A, OGG, FLAC, WAV…', open_player: 'Player öffnen',
     web_page: 'Webseite', upd_check: 'Nach Updates suchen', upd_checking: 'Wird geprüft…', upd_uptodate: 'Dein Jooki ist auf dem neuesten Stand.', upd_offline: 'GitHub ist nicht erreichbar (ist der Jooki online?).', upd_available: function (v) { return 'Neue Version ' + v + ' verfügbar'; }, upd_now: 'Jetzt aktualisieren', upd_q: function (v) { return 'Auf OpenJooki ' + v + ' aktualisieren?'; },
     upd_text: 'Der Jooki lädt die neue Version und startet automatisch neu. Das dauert etwa 10 bis 20 Minuten. Lass ihn am Ladegerät. Musik und Figuren bleiben erhalten. Falls etwas schiefgeht, wechselt er automatisch zur vorherigen Version zurück.', upd_running: 'Update läuft…', upd_keep: 'Lass den Jooki am Ladegerät. Diese Seite verbindet sich automatisch wieder.', upd_stuck: 'Seit einiger Zeit keine Änderung? Während des Updates trennt und verbindet sich der Jooki mehrmals. Das Handy kann dabei den Anschluss verlieren. Du kannst die Seite neu laden. Das unterbricht nichts.', upd_reload: 'Seite neu laden', upd_wait: 'Der Jooki startet noch. Versuche es in einer Minute erneut.', upd_rebooting: 'Der Jooki startet mit der neuen Version…', upd_done: function (v) { return 'Jooki aktualisiert: OpenJooki ' + v; }, upd_failed: 'Das Update ist fehlgeschlagen. Dein Jooki wurde nicht verändert.', upd_banner: function (v) { return 'Update ' + v + ' verfügbar'; }, upd_see: 'Anzeigen',
     upd_steps: ['Neue Version suchen', 'Herunterladen', 'Download prüfen', 'Installieren (am Ladegerät lassen)', 'Installation prüfen', 'Mit der neuen Version neu starten'],
@@ -545,8 +545,8 @@
     deleted: 'Verwijderd', choose_playlist: 'Kies een afspeellijst', added: function (n) { return n + (n === 1 ? ' nummer toegevoegd' : ' nummers toegevoegd'); },
     already_in: 'zit er al in', add: 'Toevoegen', add_n: function (n) { return n + ' toevoegen'; },
     library_empty: 'Geen nummers op de Jooki.', unused_empty: 'Elk nummer zit in een afspeellijst.',
-    radio: 'Radio', radio_title: 'Een webradio toevoegen', radio_name: 'Naam van de radio', radio_url: 'Streamadres (http:// of https://)',
-    radio_url_bad: 'Het adres moet beginnen met http:// of https://',
+    radio: 'Radio', radio_title: 'Een webradio toevoegen', radio_name: 'Naam van de radio', radio_url: 'Streamadres (alleen http://)',
+    radio_url_bad: 'Deze Jooki kan geen HTTPS-radiostreams afspelen. Gebruik een http://-adres.',
     tokens_intro: 'Elk personage start één afspeellijst. Alle figuurtjes van hetzelfde personage (bijv. al je zwarte draken) doen precies hetzelfde.',
     tokens_hint: 'Zet een figuurtje op de Jooki om het hier te zien.',
     nfc_tag: 'NFC-tag', foreign_hint: 'Een ander NFC-voorwerp (een amiibo, een sticker) verschijnt hier ook als je het erop zet: het start zijn afspeellijst, maar eraf halen pauzeert niet, en twee na elkaar hebben vaak een echt Jooki-figuurtje ertussen nodig. Gebruik de knop om te pauzeren.',
@@ -632,7 +632,7 @@
     err_readonly: 'Niet mogelijk bij ongebruikte nummers.',
     err_internal: 'De Jooki liep tegen een fout aan. Probeer het opnieuw.',
     err_empty_title: 'De naam mag niet leeg zijn.',
-    err_radio: 'Ongeldig radioadres.',
+    err_radio: 'Ongeldig radioadres. Deze Jooki ondersteunt alleen HTTP-streams.',
     err_gone: 'Dit item bestaat niet meer.',
     err_generic: 'De Jooki heeft de actie geweigerd.',
     err_unknown_char: 'Onbekend personage.',
@@ -2293,7 +2293,7 @@
     var name = '', url = '', err = '';
     function ok() {
       var u = url.trim();
-      if (!/^https?:\/\/[\w\[]/i.test(u)) { err = t('radio_url_bad'); renderModal(); return; }
+      if (!/^http:\/\/[\w\[]/i.test(u)) { err = t('radio_url_bad'); renderModal(); return; }
       send('PLAYLIST_ADD_STREAM', { playlistId: p.id, title: name.trim() || u, url: u });
       closeModal();
     }
@@ -2302,7 +2302,7 @@
       render: function () {
         return [h('h3', null, t('radio_title')),
           field(t('radio_name'), { 'data-k': 'rname', value: name, maxlength: '100', oninput: function (e) { name = e.target.value; } }),
-          field(t('radio_url'), { 'data-k': 'rurl', type: 'url', inputmode: 'url', value: url, placeholder: 'https://',
+          field(t('radio_url'), { 'data-k': 'rurl', type: 'url', inputmode: 'url', value: url, placeholder: 'http://',
             oninput: function (e) { url = e.target.value; }, onkeydown: function (e) { if (e.key === 'Enter') ok(); } }),
           err ? h('div', { class: 'banner danger' }, err) : null,
           modalFoot(t('add'), ok)];

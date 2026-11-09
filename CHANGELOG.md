@@ -1,5 +1,11 @@
 # OpenJooki — Changelog
 
+## Unreleased
+- Web radio URLs now accept HTTP only, matching the Jooki audio image's missing GIO TLS backend.
+  HTTPS radio URLs are rejected with an explanation instead of being accepted and then failing
+  silently. Failed network playback also returns the player to idle rather than showing it as
+  playing.
+
 ## OpenJooki 2.4.21 (6 November 2026) — Play from other apps
 - **Play from other apps (UPnP / DLNA)** (#29). The Jooki can now play music sent from an app on
   your phone or from a music server at home, over your Wi-Fi: BubbleUPnP (Android), mconnect

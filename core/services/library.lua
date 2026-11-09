@@ -26,7 +26,8 @@ local function trim(s) return (tostring(s):gsub("^%s+", ""):gsub("%s+$", "")) en
 local function is_uid(s) return type(s) == "string" and #s == 14 and s:match("^%x+$") ~= nil end
 local function is_star(s) return type(s) == "string" and s ~= "" and #s <= 64 end
 local function is_jplay(p) return p and p.plType == "JPLAY" end
-local function is_url(u) return type(u) == "string" and u:match("^https?://[%w%[]") ~= nil end
+-- The Jooki's audio_ctrl image has no GIO TLS backend; HTTPS URLs cannot be opened.
+local function is_url(u) return type(u) == "string" and u:match("^http://[%w%[]") ~= nil end
 
 local deep_copy = util.copy
 
