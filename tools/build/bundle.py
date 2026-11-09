@@ -103,7 +103,7 @@ def strip_lua(src):
 # from a file next to it and runs that, so the core has no 200 KiB ceiling any more.
 # It carries the version and the core's byte length: a truncated or stale core file is
 # refused before it runs (the install path also verifies the file's md5 on the spare
-# partition). Lua 5.1; only io and loadstring are used, both host built-ins.
+# partition). Lua 5.1; io, loadstring and the collector are host built-ins.
 CORE_FILE = "/jooki/lib/core.lua"
 
 def loader_src(version, core_len):
@@ -125,6 +125,7 @@ def loader_src(version, core_len):
         "if #src ~= EXPECT then fail('core size '..#src..' expected '..EXPECT) end\n"
         "local fn, err = loadstring(src, '=core')\n"
         "if not fn then fail('core will not load: '..tostring(err)) end\n"
+        "src = nil; collectgarbage('collect')\n"
         "return fn()\n"
     ) % (version, CORE_FILE, version, version, CORE_FILE, core_len)
 
@@ -159,9 +160,11 @@ def main():
         "function c_alsa_set_volume(v, x) local f = io.open('/tmp/bench_vol.log', 'a') if f then f:write(tostring(v) .. '\\n') f:close() end return 0 end\n"
         "function c_isTerminating() return _G.__terminating == true end\n"
         "function c_sd_notify() io.stdout:write('READY\\n') io.stdout:flush() end\n"
-        "local src = assert(io.open(arg[1])):read('*a')\n"
+        "local file = assert(io.open(arg[1], 'rb'))\n"
+        "local src = file:read('*a'); file:close()\n"
         "local f = assert(loadstring(src, '=core'))\n"
-        "f()\n")
+        "src = nil; collectgarbage('collect')\n"
+        "return f()\n")
     open(os.path.join(a.out, "core.min.lua"), "w", encoding="utf-8", newline="\n").write(stripped)
     core_bytes = stripped.encode("latin-1", "replace")   # the exact bytes shipped as /jooki/lib/core.lua
     # player.lib is the loader; it carries the core's byte length so a stale core is refused

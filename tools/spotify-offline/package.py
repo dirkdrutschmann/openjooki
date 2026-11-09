@@ -80,6 +80,9 @@ def assemble(work, output, version):
             'Use its default check mode before explicitly selecting --apply.\n'
         ).encode()
         modes = {name: (0o700 if name == 'sdk/spotify_player' else 0o644) for name in files}
+        for name in files:
+            if name.startswith('application/'):
+                modes[name] = int(jooki.file_mode('/' + name[len('application/'):]), 8)
         modes['sdk/app.toml'] = 0o600
         sources = sorted((trial.ROOT / 'core').rglob('*.lua')) + sorted((web / 'src').glob('*.js'))
         source_hashes = {str(p.relative_to(trial.ROOT)): digest(p.read_bytes()) for p in sources

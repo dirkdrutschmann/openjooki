@@ -11,6 +11,11 @@ function items.assets(doc, int, data, reset)
   local account = data.account_id or (doc.spotify_offline or {}).account_id
   if reset or int.artwork_account ~= account then int.artwork = {} end
   int.artwork, int.artwork_account = int.artwork or {}, account
+  local count, incoming = 0, 0
+  for _ in pairs(int.artwork) do count = count + 1 end
+  for key in pairs(type(data.artwork) == "table" and data.artwork or {}) do if not int.artwork[key] then incoming = incoming + 1 end end
+  -- Keep the whole visible page, while bounding older, no-longer-visible image mappings.
+  if count + incoming > 512 then int.artwork = {} end
   local root = (doc.config or {}).spotify_offline_root or "/jooki/external/openjooki-offline"
   local prefix = root .. "/store/accounts/" .. tostring(account) .. "/"
   for key, value in pairs(type(data.artwork) == "table" and data.artwork or {}) do

@@ -76,6 +76,13 @@ describe("private Spotify cover routing", function()
     d.spotify_offline.account_id = nil
     assert_nil(items.artwork(d, "/offline-artwork/" .. KEY))
   end)
+  it("bounds accumulated artwork mappings while retaining the entire incoming page", function()
+    local d, int = doc(), { artwork = {}, artwork_account = ACCOUNT }
+    for i = 1, 512 do int.artwork[string.format("%064x", i)] = { path = path, mime = "image/jpeg" } end
+    items.assets(d, int, { account_id = ACCOUNT, artwork = { [KEY] = { path = path, mime = "image/jpeg" } } })
+    local count = 0; for _ in pairs(int.artwork) do count = count + 1 end
+    assert_eq(count, 1); assert_eq(int.artwork[KEY].path, path)
+  end)
   it("rejects audio files, traversal, other accounts and active document types", function()
     for _, value in ipairs({ { path = "/etc/passwd", mime = "image/jpeg" },
       { path = path:gsub(ACCOUNT, string.rep("c", 64)), mime = "image/jpeg" },

@@ -395,10 +395,10 @@ index bc21f41..a98e781 100644
 +
 diff --git a/spotify_player/src/downloads/managed.rs b/spotify_player/src/downloads/managed.rs
 new file mode 100644
-index 0000000..127cb7f
+index 0000000..d976f07
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed.rs
-@@ -0,0 +1,2228 @@
+@@ -0,0 +1,2229 @@
 +#[path = "managed_items.rs"]
 +mod items;
 +use std::{
@@ -872,7 +872,8 @@ index 0000000..127cb7f
 +            catalog_error = Some("snapshot_index_corrupt".into());
 +            Index::empty(id)
 +        });
-+        let page_limit = (200 / index.playlists.len().max(1)).min(super::native::PAGE_SIZE);
++        // Leave room for local artwork descriptors in the bounded public catalog.
++        let page_limit = (100 / index.playlists.len().max(1)).min(super::native::PAGE_SIZE);
 +        for (uri, entry) in index.playlists {
 +            let ready = entry_library(paths, id, &entry)
 +                .and_then(|l| select_complete(&l, &uri, &entry))
