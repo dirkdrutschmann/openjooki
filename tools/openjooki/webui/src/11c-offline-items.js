@@ -1,3 +1,5 @@
+  var offlineShowUnavailable = lsGet('oj.offline.unavailable') === '1';
+  function spotifyTrackUnavailable(track) { return !track.cached && !!track.problem; }
   // Metadata pages survive reloads. Audio availability always comes from the current account.
   var offlineTitleAccountId = null;
   function offlineTitlePrefix() { return 'oj.titles.1:' + (S.device.id || S.device.hostname || location.host) + ':'; }
@@ -73,7 +75,7 @@
   }
   function spotifyTrackActions(p, track, position, busy) {
     var o = obj(S.spotifyOffline), queued = arr(o.queue).some(function (q) { return q.uri === p.spotify.uri && q.track_uri === track.uri; });
-    if (!o.account_ready) return null;
+    if (!o.account_ready || spotifyTrackUnavailable(track)) return null;
     var current = obj(o.download), loading = busy && current.uri === p.spotify.uri && (!current.track_uri || current.track_uri === track.uri);
     var label = track.cached ? t('of_item_stored') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
     function cache(play) { send('OJ_OFFLINE_CACHE_TRACK', { playlistId: p.id, trackIndex: position, trackUri: track.uri, play: play }); }

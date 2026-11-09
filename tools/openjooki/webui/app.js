@@ -82,6 +82,10 @@
     volume_test_muted: 'Réactivez d’abord le son du Jooki.',
     volume_test_failed: 'Le son de test n’a pas pu être joué. Veuillez réessayer.',
     volume_test_unavailable: 'Ce test de volume est indisponible pour le moment.',
+    of_spotify_unavailable: 'Indisponible sur Spotify',
+    of_show_unavailable: 'Afficher les titres indisponibles',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' titre indisponible masqué sur cette page' : ' titres indisponibles masqués sur cette page'); },
+    of_filtered_empty: 'Aucun titre disponible sur cette page. Choisissez Suivant pour continuer.',
     of_cache_item: 'Enregistrer ce titre hors ligne',
     of_item_stored: 'Enregistré hors ligne',
     of_play_item: 'Lire ce titre',
@@ -303,6 +307,10 @@
     volume_test_muted: 'Unmute the Jooki first.',
     volume_test_failed: 'The test tone could not play. Please try again.',
     volume_test_unavailable: 'This volume test is currently unavailable.',
+    of_spotify_unavailable: 'Unavailable on Spotify',
+    of_show_unavailable: 'Show unavailable songs',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' unavailable song hidden on this page' : ' unavailable songs hidden on this page'); },
+    of_filtered_empty: 'There are no available songs on this page. Choose Next to continue.',
     of_cache_item: 'Save this song offline',
     of_item_stored: 'Saved offline',
     of_play_item: 'Play this song',
@@ -507,6 +515,10 @@
     volume_test_muted: 'Hebe zuerst die Stummschaltung auf.',
     volume_test_failed: 'Der Testton konnte nicht abgespielt werden. Versuche es erneut.',
     volume_test_unavailable: 'Dieser Lautstärketest ist gerade nicht verfügbar.',
+    of_spotify_unavailable: 'Bei Spotify nicht verfügbar',
+    of_show_unavailable: 'Nicht verfügbare Titel anzeigen',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' nicht verfügbarer Titel auf dieser Seite ausgeblendet' : ' nicht verfügbare Titel auf dieser Seite ausgeblendet'); },
+    of_filtered_empty: 'Auf dieser Seite sind keine verfügbaren Titel. Blättere mit „Weiter“ zur nächsten Seite.',
     of_cache_item: 'Diesen Titel offline speichern',
     of_item_stored: 'Offline gespeichert',
     of_play_item: 'Diesen Titel abspielen',
@@ -633,6 +645,10 @@
     volume_test_muted: 'Zet eerst het geluid van de Jooki weer aan.',
     volume_test_failed: 'De testtoon kon niet worden afgespeeld. Probeer het opnieuw.',
     volume_test_unavailable: 'Deze volumetest is momenteel niet beschikbaar.',
+    of_spotify_unavailable: 'Niet beschikbaar op Spotify',
+    of_show_unavailable: 'Niet-beschikbare nummers tonen',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' niet-beschikbaar nummer verborgen op deze pagina' : ' niet-beschikbare nummers verborgen op deze pagina'); },
+    of_filtered_empty: 'Er zijn geen beschikbare nummers op deze pagina. Kies Volgende om verder te gaan.',
     of_cache_item: 'Dit nummer offline opslaan',
     of_item_stored: 'Offline opgeslagen',
     of_play_item: 'Dit nummer afspelen',
@@ -2500,6 +2516,8 @@
     var own = mine ? active : obj(obj(o.jobs)[p.spotify.uri]);
     var ready = !!snap.ready, offset = Number(meta.offset) || wanted;
     var tracks = arr(meta.tracks).length ? arr(meta.tracks) : wanted === 0 && arr(snap.tracks).length ? arr(snap.tracks) : mine && wanted === 0 ? arr(active.tracks) : [];
+    tracks = tracks.map(function (track) { return spotifyStoredTrack(p, track); });
+    var unavailableCount = tracks.filter(spotifyTrackUnavailable).length;
     var total = Number(meta.total) || Number(snap.total_tracks) || Number(own.total) || tracks.length;
     var failedUnavailable = /^(track_unavailable|unsupported_audio_format)$/.test(own.error || '');
     var firstPageTracks = arr(obj(offlinePreviewCache[pageKey + ':0']).tracks);
@@ -2523,18 +2541,22 @@
     function command(kind) { send(kind, { playlistId: id }); }
     var titleBlock = h('section', { class: 'spotify-titles', 'data-k': 'spotify-titles' },
       h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, total ? String(total) : '')),
+      h('label', { class: 'offline-filter' }, h('input', { type: 'checkbox', checked: offlineShowUnavailable, 'data-k': 'show-unavailable',
+        onchange: function (e) { offlineShowUnavailable = e.target.checked; lsSet('oj.offline.unavailable', offlineShowUnavailable ? '1' : '0'); render(); } }), h('span', null, t('of_show_unavailable'))),
+      !offlineShowUnavailable && unavailableCount ? h('p', { class: 'small muted', 'data-k': 'offline-hidden' }, t('of_hidden_unavailable', unavailableCount)) : null,
+      !offlineShowUnavailable && tracks.length && unavailableCount === tracks.length ? h('p', { class: 'small muted', 'data-k': 'offline-filter-empty' }, t('of_filtered_empty')) : null,
       !metadataReady ? h('p', { class: 'small muted' }, t('of_titles_login'), ' ', h('a', { href: '#/settings/spotify' }, t('of_connect'))) : null,
       meta.phase === 'loading' && !tracks.length ? h('p', { class: 'small muted', role: 'status' }, t('of_titles_loading')) : null,
       meta.phase === 'error' ? h('div', { class: 'offline-notice', role: 'alert' }, offlineErrorText(meta.error, 'metadata'),
         h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, offset, true); } }, t('of_retry'))) : null,
       tracks.length ? h('ol', { class: 'offline-tracks', start: offset + 1, 'data-k': 'offline-tracks' }, tracks.map(function (track, i) {
-        track = spotifyStoredTrack(p, track);
+        if (!offlineShowUnavailable && spotifyTrackUnavailable(track)) return null;
         var position = offset + i + 1, selected = np.service === 'SPOTIFY_OFFLINE' && np.playlistId === id && np.trackIndex === position;
-        return h('li', { class: 'offline-track' + (selected ? ' selected' : '') },
+        return h('li', { class: 'offline-track' + (selected ? ' selected' : '') + (spotifyTrackUnavailable(track) ? ' unavailable' : ''), 'data-track-index': String(offset + i + 1) },
           h('span', { class: 'offline-art', 'aria-hidden': 'true' }, track.image ? h('img', { src: track.image, loading: 'lazy', alt: '', onerror: function (e) { e.target.style.display = 'none'; } }) : null, h('span', null, selected ? '♪' : String(position))),
           h('span', { class: 'offline-track-info' }, h('span', { class: 'title' }, track.name || '—'),
             h('span', { class: 'small muted' }, arr(track.artists).join(', ')),
-            h('span', { class: 'small muted' }, fmtTime((track.duration_ms || 0) / 1000) + ' · ' + t(track.cached ? 'of_item_stored' : track.problem ? 'of_item_unavailable' : 'of_online_badge'))),
+            h('span', { class: 'small muted' }, fmtTime((track.duration_ms || 0) / 1000) + ' · ' + t(track.cached ? 'of_item_stored' : track.problem === 'track_unavailable' ? 'of_spotify_unavailable' : track.problem ? 'of_item_unavailable' : 'of_online_badge'))),
           spotifyTrackActions(Object.assign({ id: id }, p), track, position, busy));
       })) : metadataReady && !meta.phase ? h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, 0, true); } }, t('of_load_titles')) : null,
       tracks.length && (offset > 0 || offset + tracks.length < total) ? h('div', { class: 'offline-paging' },
@@ -2580,6 +2602,8 @@
           h('button', { class: 'icon-btn', 'aria-label': t('of_cancel_queue') + ': ' + (item.title || ''), onclick: function () { send('OJ_OFFLINE_CANCEL_QUEUED', { playlistId: item.playlist }); } }, icon('x'))); }))) : null,
       titleBlock);
   }
+  var offlineShowUnavailable = lsGet('oj.offline.unavailable') === '1';
+  function spotifyTrackUnavailable(track) { return !track.cached && !!track.problem; }
   // Metadata pages survive reloads. Audio availability always comes from the current account.
   var offlineTitleAccountId = null;
   function offlineTitlePrefix() { return 'oj.titles.1:' + (S.device.id || S.device.hostname || location.host) + ':'; }
@@ -2655,7 +2679,7 @@
   }
   function spotifyTrackActions(p, track, position, busy) {
     var o = obj(S.spotifyOffline), queued = arr(o.queue).some(function (q) { return q.uri === p.spotify.uri && q.track_uri === track.uri; });
-    if (!o.account_ready) return null;
+    if (!o.account_ready || spotifyTrackUnavailable(track)) return null;
     var current = obj(o.download), loading = busy && current.uri === p.spotify.uri && (!current.track_uri || current.track_uri === track.uri);
     var label = track.cached ? t('of_item_stored') : queued ? t('of_queued') : loading ? t('of_busy') : t('of_cache_item');
     function cache(play) { send('OJ_OFFLINE_CACHE_TRACK', { playlistId: p.id, trackIndex: position, trackUri: track.uri, play: play }); }

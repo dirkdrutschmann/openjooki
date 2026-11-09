@@ -555,3 +555,8 @@ button.srow:disabled { opacity: .5; cursor: default; }
 .offline-chip { display: grid; place-items: center; width: 34px; height: 30px; padding: 5px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel-2); color: var(--accent); }
 .offline-chip.ready:disabled { color: #19834a; opacity: 1; background: #19834a15; }
 .offline-chip svg { width: 18px; height: 18px; }
+
+.offline-filter { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 14px; }
+.offline-filter input { accent-color: var(--accent); }
+.offline-track.unavailable { color: var(--muted); }
+.offline-track.unavailable .offline-art { opacity: .45; filter: grayscale(1); }

@@ -119,6 +119,38 @@ def main():
         expect(accuracy.locator('[data-k=offline-tracks] li')).to_have_count(0)
         assert not accuracy.evaluate('Object.keys(localStorage).some(k => k.includes("account-one:"))')
         checks.append('explicit unavailable flags and zero counts override old progress; removing a copy clears cached rows and disk metadata')
+        filtered = copy.deepcopy(state)
+        blocked = [dict(uri='spotify:track:' + str(i)*22, name='Nicht verfügbar '+str(i), artists=['Artist'],
+                        cached=False, problem='track_unavailable') for i in (4, 5)]
+        filtered['spotifyOffline']['previews'][URI].update(request='filter-1', total=55,
+            tracks=[dict(songs[0], problem='track_unavailable'), blocked[0], songs[1], blocked[1], songs[2]])
+        fp = page_for(filtered)
+        fp.goto(url + '#/p/user_1')
+        filtered_rows = fp.locator('[data-k=offline-tracks] li')
+        expect(fp.locator('[data-k=show-unavailable]')).not_to_be_checked()
+        expect(filtered_rows).to_have_count(3)
+        assert filtered_rows.evaluate_all('(rs)=>rs.map(r=>r.dataset.trackIndex)') == ['1','3','5']
+        expect(fp.locator('[data-k=offline-hidden]')).to_contain_text('2 nicht verfügbare Titel')
+        filtered_rows.nth(2).locator('[data-track-play]').click()
+        assert sent('OJ_OFFLINE_CACHE_TRACK', fp)['payload']['trackIndex'] == 5
+        fp.locator('[data-k=show-unavailable]').check()
+        expect(filtered_rows).to_have_count(5)
+        expect(fp.locator('li.unavailable')).to_have_count(2)
+        for row in fp.locator('li.unavailable').all():
+            expect(row).to_contain_text('Bei Spotify nicht verfügbar')
+            expect(row.locator('button')).to_have_count(0)
+        # A valid cached file is still usable even if its older metadata says unavailable.
+        expect(filtered_rows.nth(0).locator('[data-track-play]')).to_be_enabled()
+        fp.reload()
+        expect(fp.locator('[data-k=show-unavailable]')).to_be_checked()
+        expect(filtered_rows).to_have_count(5)
+        fp.locator('[data-k=show-unavailable]').uncheck()
+        filtered['spotifyOffline']['previews'][URI].update(request='filter-2', tracks=blocked)
+        fp.evaluate('(s)=>window.offlinePeer.onmessage("/j/web/output/state", JSON.stringify(s))', filtered)
+        expect(filtered_rows).to_have_count(0)
+        expect(fp.locator('[data-k=offline-filter-empty]')).to_be_visible()
+        expect(fp.get_by_role('button', name='Weiter', exact=True)).to_be_enabled()
+        checks.append('unavailable songs start hidden; the remembered filter reveals gray rows with no actions, preserves source indexes and permits paging past empty pages')
         assert not errors, errors
         browser.close()
     server.shutdown()

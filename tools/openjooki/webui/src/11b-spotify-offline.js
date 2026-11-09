@@ -39,6 +39,8 @@
     var own = mine ? active : obj(obj(o.jobs)[p.spotify.uri]);
     var ready = !!snap.ready, offset = Number(meta.offset) || wanted;
     var tracks = arr(meta.tracks).length ? arr(meta.tracks) : wanted === 0 && arr(snap.tracks).length ? arr(snap.tracks) : mine && wanted === 0 ? arr(active.tracks) : [];
+    tracks = tracks.map(function (track) { return spotifyStoredTrack(p, track); });
+    var unavailableCount = tracks.filter(spotifyTrackUnavailable).length;
     var total = Number(meta.total) || Number(snap.total_tracks) || Number(own.total) || tracks.length;
     var failedUnavailable = /^(track_unavailable|unsupported_audio_format)$/.test(own.error || '');
     var firstPageTracks = arr(obj(offlinePreviewCache[pageKey + ':0']).tracks);
@@ -62,18 +64,22 @@
     function command(kind) { send(kind, { playlistId: id }); }
     var titleBlock = h('section', { class: 'spotify-titles', 'data-k': 'spotify-titles' },
       h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, total ? String(total) : '')),
+      h('label', { class: 'offline-filter' }, h('input', { type: 'checkbox', checked: offlineShowUnavailable, 'data-k': 'show-unavailable',
+        onchange: function (e) { offlineShowUnavailable = e.target.checked; lsSet('oj.offline.unavailable', offlineShowUnavailable ? '1' : '0'); render(); } }), h('span', null, t('of_show_unavailable'))),
+      !offlineShowUnavailable && unavailableCount ? h('p', { class: 'small muted', 'data-k': 'offline-hidden' }, t('of_hidden_unavailable', unavailableCount)) : null,
+      !offlineShowUnavailable && tracks.length && unavailableCount === tracks.length ? h('p', { class: 'small muted', 'data-k': 'offline-filter-empty' }, t('of_filtered_empty')) : null,
       !metadataReady ? h('p', { class: 'small muted' }, t('of_titles_login'), ' ', h('a', { href: '#/settings/spotify' }, t('of_connect'))) : null,
       meta.phase === 'loading' && !tracks.length ? h('p', { class: 'small muted', role: 'status' }, t('of_titles_loading')) : null,
       meta.phase === 'error' ? h('div', { class: 'offline-notice', role: 'alert' }, offlineErrorText(meta.error, 'metadata'),
         h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, offset, true); } }, t('of_retry'))) : null,
       tracks.length ? h('ol', { class: 'offline-tracks', start: offset + 1, 'data-k': 'offline-tracks' }, tracks.map(function (track, i) {
-        track = spotifyStoredTrack(p, track);
+        if (!offlineShowUnavailable && spotifyTrackUnavailable(track)) return null;
         var position = offset + i + 1, selected = np.service === 'SPOTIFY_OFFLINE' && np.playlistId === id && np.trackIndex === position;
-        return h('li', { class: 'offline-track' + (selected ? ' selected' : '') },
+        return h('li', { class: 'offline-track' + (selected ? ' selected' : '') + (spotifyTrackUnavailable(track) ? ' unavailable' : ''), 'data-track-index': String(offset + i + 1) },
           h('span', { class: 'offline-art', 'aria-hidden': 'true' }, track.image ? h('img', { src: track.image, loading: 'lazy', alt: '', onerror: function (e) { e.target.style.display = 'none'; } }) : null, h('span', null, selected ? '♪' : String(position))),
           h('span', { class: 'offline-track-info' }, h('span', { class: 'title' }, track.name || '—'),
             h('span', { class: 'small muted' }, arr(track.artists).join(', ')),
-            h('span', { class: 'small muted' }, fmtTime((track.duration_ms || 0) / 1000) + ' · ' + t(track.cached ? 'of_item_stored' : track.problem ? 'of_item_unavailable' : 'of_online_badge'))),
+            h('span', { class: 'small muted' }, fmtTime((track.duration_ms || 0) / 1000) + ' · ' + t(track.cached ? 'of_item_stored' : track.problem === 'track_unavailable' ? 'of_spotify_unavailable' : track.problem ? 'of_item_unavailable' : 'of_online_badge'))),
           spotifyTrackActions(Object.assign({ id: id }, p), track, position, busy));
       })) : metadataReady && !meta.phase ? h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, 0, true); } }, t('of_load_titles')) : null,
       tracks.length && (offset > 0 || offset + tracks.length < total) ? h('div', { class: 'offline-paging' },

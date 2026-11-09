@@ -395,10 +395,10 @@ index bc21f41..a98e781 100644
 +
 diff --git a/spotify_player/src/downloads/managed.rs b/spotify_player/src/downloads/managed.rs
 new file mode 100644
-index 0000000..528c372
+index 0000000..c8426bd
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed.rs
-@@ -0,0 +1,2229 @@
+@@ -0,0 +1,2272 @@
 +#[path = "managed_items.rs"]
 +mod items;
 +use std::{
@@ -1202,9 +1202,17 @@ index 0000000..528c372
 +            for (index, track_uri) in expected.iter().enumerate() {
 +                ensure!(account_id()?.as_deref() == Some(&id), "account_changed");
 +                if !library.contains_valid(track_uri) {
++                    let metadata = if track_uri.starts_with("spotify:track:") {
++                        super::native::song(&session, track_uri).await.ok()
++                    } else {
++                        None
++                    };
 +                    let download = if track_uri.starts_with("spotify:track:") {
-+                        super::download_checked(&session, &library, track_uri, |bytes| {
-+                            check_capacity(paths, bytes)
++                        items::download_if_available(metadata.as_ref(), || async {
++                            super::download_checked(&session, &library, track_uri, |bytes| {
++                                check_capacity(paths, bytes)
++                            })
++                            .await
 +                        })
 +                        .await
 +                    } else {
@@ -1222,7 +1230,6 @@ index 0000000..528c372
 +                        {
 +                            return Err(error);
 +                        }
-+                        let metadata = super::native::song(&session, track_uri).await.ok();
 +                        let skipped = Track {
 +                            uri: track_uri.clone(),
 +                            name: metadata
@@ -1921,6 +1928,7 @@ index 0000000..528c372
 +        .join("previews")
 +        .join(hash(uri.as_bytes()))
 +        .join(format!("{offset}.json"));
++    let mut fetched = false;
 +    let attempt: Result<()> = async {
 +        if let Some(entry) = load_index(paths, &id)?.playlists.get(uri) {
 +            result.total = entry.tracks.len();
@@ -1969,6 +1977,7 @@ index 0000000..528c372
 +            let page = client
 +                .playlist_metadata_page(rspotify::model::PlaylistId::from_uri(uri)?, offset)
 +                .await?;
++            fetched = true;
 +            result.total = page.total as usize;
 +            result.tracks = page
 +                .items
@@ -1982,7 +1991,7 @@ index 0000000..528c372
 +                        duration_ms: t.duration.num_milliseconds().max(0) as u32,
 +                        bytes: 0,
 +                        image: None,
-+                        problem: None,
++                        problem: (t.is_playable == Some(false)).then(|| "track_unavailable".into()),
 +                    },
 +                    Some(rspotify::model::PlayableItem::Episode(e)) => super::native::Song {
 +                        uri: e.id.uri(),
@@ -2013,6 +2022,7 @@ index 0000000..528c372
 +        let creds = auth::get_creds(&auth, false, true)?;
 +        tokio::time::timeout(Duration::from_secs(30), session.connect(creds, true)).await??;
 +        let listing = super::native::listing(&session, uri).await?;
++        fetched = true;
 +        result.total = listing.uris.len();
 +        result.name = listing.name;
 +        result.tracks.clear();
@@ -2045,7 +2055,9 @@ index 0000000..528c372
 +    .await;
 +    result.phase = if attempt.is_ok() { "complete" } else { "error" }.into();
 +    result.error = attempt.as_ref().err().map(|e| error_code(e).into());
-+    if attempt.is_ok() {
++    // Reading the cache must not renew its age; frequent visits still refresh
++    // membership after five minutes.
++    if attempt.is_ok() && fetched {
 +        let _ = write_json(&cache, &result);
 +    }
 +    items::write_preview(paths, output, &result)?;
@@ -2267,6 +2279,37 @@ index 0000000..528c372
 +            tracks,
 +        )
 +    }
++    #[tokio::test]
++    async fn known_unavailable_members_never_invoke_the_audio_downloader() {
++        let song = super::super::native::Song {
++            uri: format!("spotify:track:{}", "1".repeat(22)),
++            name: "Unavailable".into(),
++            artists: vec![],
++            album: String::new(),
++            duration_ms: 1000,
++            bytes: 0,
++            image: None,
++            problem: Some("track_unavailable".into()),
++        };
++        let calls = std::cell::Cell::new(0);
++        let result: Result<()> = items::download_if_available(Some(&song), || async {
++            calls.set(calls.get() + 1);
++            Ok(())
++        })
++        .await;
++        assert_eq!(error_code(&result.unwrap_err()), "track_unavailable");
++        assert_eq!(calls.get(), 0);
++        let mut available = song;
++        available.problem = None;
++        items::download_if_available(Some(&available), || async {
++            calls.set(calls.get() + 1);
++            Ok(())
++        })
++        .await
++        .unwrap();
++        assert_eq!(calls.get(), 1);
++    }
++
 +    #[test]
 +    fn failed_update_retains_exact_previous_generation_and_order() {
 +        let root = tempfile::tempdir().unwrap();
@@ -2630,10 +2673,10 @@ index 0000000..528c372
 +}
 diff --git a/spotify_player/src/downloads/managed_items.rs b/spotify_player/src/downloads/managed_items.rs
 new file mode 100644
-index 0000000..e5818dd
+index 0000000..da46e53
 --- /dev/null
 +++ b/spotify_player/src/downloads/managed_items.rs
-@@ -0,0 +1,334 @@
+@@ -0,0 +1,354 @@
 +//! Public cache state and covers, plus explicit single-title downloads/playback.
 +//! Audio, keys and filesystem paths stay in the private native store.
 +use super::{
@@ -2884,6 +2927,22 @@ index 0000000..e5818dd
 +    bail!("track_unavailable: this title has not been cached")
 +}
 +
++// Availability comes from fresh metadata. Do not even invoke the audio downloader for
++// a member Spotify has already marked unavailable.
++pub(super) async fn download_if_available<T, F, Fut>(
++    song: Option<&super::super::native::Song>,
++    operation: F,
++) -> Result<T>
++where
++    F: FnOnce() -> Fut,
++    Fut: std::future::Future<Output = Result<T>>,
++{
++    if song.is_some_and(|s| s.problem.as_deref() == Some("track_unavailable")) {
++        bail!("track_unavailable: Spotify marks this title unavailable");
++    }
++    operation().await
++}
++
 +pub(super) async fn cache_track(paths: &Paths, args: &ArgMatches, uri: &str) -> Result<()> {
 +    let _lock = Lock::take(&paths.root.join("sync.lock"))?;
 +    let id = account_id()?.context("authentication_required")?;
@@ -2942,8 +3001,12 @@ index 0000000..e5818dd
 +            reuse(&entry_library(paths, &id, entry)?, library.root())?;
 +        }
 +        if !library.contains_valid(track_uri) {
-+            super::super::download_checked(&session, &library, track_uri, |bytes| {
-+                check_capacity(paths, bytes)
++            let metadata = super::super::native::song(&session, track_uri).await.ok();
++            download_if_available(metadata.as_ref(), || async {
++                super::super::download_checked(&session, &library, track_uri, |bytes| {
++                    check_capacity(paths, bytes)
++                })
++                .await
 +            })
 +            .await?;
 +        }

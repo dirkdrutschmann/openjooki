@@ -196,8 +196,8 @@ refresh in the background. Local album covers use opaque, account-scoped HTTP ro
 filesystem paths, credentials and encryption keys remain private. Playlist card footers
 reserve space for long labels beside Play.
 
-Validation before deployment: 477 Lua specs, 71 native SDK tests, minimal-feature
-Clippy, the MIPS build, 16 offline browser checks, package/source-profile checks and the
+Validation before deployment: 477 Lua specs, 72 native SDK tests, minimal-feature
+Clippy, the MIPS build, 17 offline browser checks, package/source-profile checks and the
 existing volume, backend and Spotify regression suites. The player-stability test now
 disables the night schedule explicitly: otherwise an active automatic sleep timer made
 its position-only measurement depend on the runner's wall clock.
@@ -205,3 +205,13 @@ its position-only measurement depend on the runner's wall clock.
 Active single-title jobs retain their URI and source index in the persistent queue.
 Native final playback status uses the same source-position mapping as running status,
 including after Stop and when unavailable songs were omitted.
+
+
+Unavailable members are hidden by default. The browser remembers the optional
+Show unavailable songs filter; revealed unavailable rows are muted and contain no
+Play or Download buttons. Source positions and page navigation remain unchanged,
+including a page containing no available titles. Valid cached files remain usable.
+The native sync and single-file commands check fresh availability before invoking
+the audio downloader. A regression proves that known unavailable metadata never
+calls that operation. Cache reads no longer renew metadata age, so frequent page
+visits cannot indefinitely postpone the five-minute membership refresh.
