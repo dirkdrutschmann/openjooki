@@ -85,8 +85,8 @@
     of_spotify_unavailable: 'Indisponible sur Spotify',
     of_show_unavailable: 'Afficher les titres indisponibles',
     of_unavailable_list: 'Titres indisponibles', of_unavailable_none: 'Aucun titre indisponible dans cette playlist.', of_search_empty: 'Aucun titre disponible correspondant.',
-    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' titre indisponible masqué sur cette page' : ' titres indisponibles masqués sur cette page'); },
-    of_filtered_empty: 'Aucun titre disponible sur cette page. Choisissez Suivant pour continuer.',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' titre indisponible masqué' : ' titres indisponibles masqués'); },
+    of_filtered_empty: 'Aucun titre disponible dans cette playlist.',
     of_cache_item: 'Enregistrer ce titre hors ligne',
     of_item_stored: 'Enregistré hors ligne',
     of_play_item: 'Lire ce titre',
@@ -311,8 +311,8 @@
     of_spotify_unavailable: 'Unavailable on Spotify',
     of_show_unavailable: 'Show unavailable songs',
     of_unavailable_list: 'Unavailable songs', of_unavailable_none: 'No unavailable songs in this playlist.', of_search_empty: 'No matching available songs.',
-    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' unavailable song hidden on this page' : ' unavailable songs hidden on this page'); },
-    of_filtered_empty: 'There are no available songs on this page. Choose Next to continue.',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' unavailable song hidden' : ' unavailable songs hidden'); },
+    of_filtered_empty: 'There are no available songs in this playlist.',
     of_cache_item: 'Save this song offline',
     of_item_stored: 'Saved offline',
     of_play_item: 'Play this song',
@@ -520,8 +520,8 @@
     of_spotify_unavailable: 'Bei Spotify nicht verfügbar',
     of_show_unavailable: 'Nicht verfügbare Titel anzeigen',
     of_unavailable_list: 'Nicht verfügbare Titel', of_unavailable_none: 'In dieser Wiedergabeliste sind keine nicht verfügbaren Titel.', of_search_empty: 'Keine passenden verfügbaren Titel.',
-    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' nicht verfügbarer Titel auf dieser Seite ausgeblendet' : ' nicht verfügbare Titel auf dieser Seite ausgeblendet'); },
-    of_filtered_empty: 'Auf dieser Seite sind keine verfügbaren Titel. Blättere mit „Weiter“ zur nächsten Seite.',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' nicht verfügbarer Titel ausgeblendet' : ' nicht verfügbare Titel ausgeblendet'); },
+    of_filtered_empty: 'In dieser Wiedergabeliste sind keine verfügbaren Titel.',
     of_cache_item: 'Diesen Titel offline speichern',
     of_item_stored: 'Offline gespeichert',
     of_play_item: 'Diesen Titel abspielen',
@@ -651,8 +651,8 @@
     of_spotify_unavailable: 'Niet beschikbaar op Spotify',
     of_show_unavailable: 'Niet-beschikbare nummers tonen',
     of_unavailable_list: 'Niet-beschikbare nummers', of_unavailable_none: 'Deze afspeellijst bevat geen niet-beschikbare nummers.', of_search_empty: 'Geen overeenkomende beschikbare nummers.',
-    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' niet-beschikbaar nummer verborgen op deze pagina' : ' niet-beschikbare nummers verborgen op deze pagina'); },
-    of_filtered_empty: 'Er zijn geen beschikbare nummers op deze pagina. Kies Volgende om verder te gaan.',
+    of_hidden_unavailable: function (n) { return n + (n === 1 ? ' niet-beschikbaar nummer verborgen' : ' niet-beschikbare nummers verborgen'); },
+    of_filtered_empty: 'Er zijn geen beschikbare nummers in deze afspeellijst.',
     of_cache_item: 'Dit nummer offline opslaan',
     of_item_stored: 'Offline opgeslagen',
     of_play_item: 'Dit nummer afspelen',
@@ -2479,7 +2479,7 @@
   }
   function optimisticTracks(id, tracks) { if (pls()[id]) { pls()[id].tracks = tracks; IDX = null; render(); } }
 
-  var offlinePreviewAsked = {}, offlinePreviewCache = {}, offlinePageOffsets = {}, offlinePageBack = {};
+  var offlinePreviewAsked = {}, offlinePreviewCache = {};
   function offlineBusy() {
     return /^(resolving|downloading|verifying)$/.test(obj(obj(S.spotifyOffline).download).phase || '');
   }
@@ -2506,7 +2506,7 @@
     offlineTitleAccount(o);
     if (!o.available || !/^spotify:playlist:[A-Za-z0-9]{22}$/.test(p.spotify.uri || '')) return null;
     var snap = obj(obj(o.playlists)[p.spotify.uri]), latest = obj(obj(o.previews)[p.spotify.uri]);
-    var pageKey = (o.account_id || '') + ':' + p.spotify.uri + ':' + (snap.snapshot_id || ''), wanted = offlinePageOffsets[pageKey] || 0;
+    var pageKey = (o.account_id || '') + ':' + p.spotify.uri + ':' + (snap.snapshot_id || ''), wanted = 0;
     var metaKey = pageKey + ':' + (Number(latest.offset) || 0), previous = offlinePreviewCache[metaKey];
     if (latest.phase && (!previous || previous.request !== latest.request || previous.phase !== latest.phase || arr(previous.tracks).length !== arr(latest.tracks).length)) {
       offlinePreviewCache[metaKey] = Object.assign({}, latest, { fetched_at: Date.now() });
@@ -2521,7 +2521,6 @@
     var ready = !!snap.ready, offset = Number(meta.offset) || wanted;
     var tracks = arr(meta.tracks).length ? arr(meta.tracks) : wanted === 0 && arr(snap.tracks).length ? arr(snap.tracks) : mine && wanted === 0 ? arr(active.tracks) : [];
     tracks = tracks.map(function (track) { return spotifyStoredTrack(p, track); });
-    var unavailableCount = tracks.filter(spotifyTrackUnavailable).length;
     var total = Number(meta.total) || Number(snap.total_tracks) || Number(own.total) || tracks.length;
     var failedUnavailable = /^(track_unavailable|unsupported_audio_format)$/.test(own.error || '');
     var firstPageTracks = arr(obj(offlinePreviewCache[pageKey + ':0']).tracks);
@@ -2535,23 +2534,20 @@
     var metadataReady = o.metadata_ready || premium;
     if (!metadataReady) tracks = [];
     var rawQuery = offlineTitleSearches[pageKey] || '', query = rawQuery.trim().toLowerCase();
-    var scan = metadataReady && (offlineShowUnavailable || query) && (total > 0 || meta.phase === 'complete') ? offlineScanTitles(id, p, pageKey, total, snap.snapshot_id, latest) : null;
-    var catalog = scan && scan.done ? offlinePlaylistTitles(p, pageKey, total) : [];
+    var scan = metadataReady && (total > 0 || meta.phase === 'complete') ? offlineScanTitles(id, p, pageKey, total, snap.snapshot_id, latest) : null;
+    var catalog = scan ? offlinePlaylistTitles(p, pageKey, total) : [];
     var availableCatalog = catalog.filter(function (item) { return !spotifyTrackUnavailable(item.track) && (!query || offlineTitleMatches(item, query)); });
     var unavailableCatalog = catalog.filter(function (item) { return spotifyTrackUnavailable(item.track) && (!query || offlineTitleMatches(item, query)); });
     var searchOffset = Number(offlineTitleSearchOffsets[pageKey]) || 0;
+    var availableOffset = Number(offlineAvailableOffsets[pageKey]) || 0;
     var unavailableOffset = Number(offlineUnavailableOffsets[pageKey]) || 0;
+    if (availableOffset >= availableCatalog.length) availableOffset = offlineAvailableOffsets[pageKey] = Math.max(0, Math.floor(Math.max(0, availableCatalog.length - 1) / 50) * 50);
     if (unavailableOffset >= unavailableCatalog.length) unavailableOffset = offlineUnavailableOffsets[pageKey] = Math.max(0, Math.floor(Math.max(0, unavailableCatalog.length - 1) / 50) * 50);
-    var pageRows = query ? scan && scan.done ? availableCatalog.slice(searchOffset, searchOffset + 50) : []
-      : tracks.map(function (track, i) { return { track: track, position: offset + i + 1 }; }).filter(function (item) { return !spotifyTrackUnavailable(item.track); });
-    var pageCount = query ? availableCatalog.length : total, pageStart = query ? searchOffset : offset;
+    var pageStart = query ? searchOffset : availableOffset;
+    var pageRows = scan && scan.done ? availableCatalog.slice(pageStart, pageStart + 50) : [];
+    var pageCount = scan && scan.done ? availableCatalog.length : total;
+    var hiddenUnavailableCount = scan && scan.done ? unavailableCatalog.length : 0;
     var scanLoaded = scan ? offlineTitleScanLoaded(pageKey, total) : 0;
-    function pageTo(next, backwards) {
-      var history = offlinePageBack[pageKey] || (offlinePageBack[pageKey] = []);
-      if (backwards) next = history.length ? history.pop() : Math.max(0, wanted - 50);
-      else history.push(wanted);
-      offlinePageOffsets[pageKey] = next; askSpotifyTitles(id, next, true);
-    }
     if (metadataReady && !scan && ((!meta.phase && (!ready || !tracks.length || tracks.length < total)) || meta.from_disk || (meta.fetched_at && Date.now() - meta.fetched_at > 300000))) askSpotifyTitles(id, wanted, false);
     function retryScan() { scan.error = null; scan.done = false; scan.waiting = null; scan.started = false; render(); }
     function trackRow(item, unavailable) {
@@ -2567,36 +2563,35 @@
     var other = userPlaylists().filter(function (item) { return item.spotify && item.spotify.uri === active.uri; })[0];
     function command(kind) { send(kind, { playlistId: id }); }
     var titleBlock = h('section', { class: 'spotify-titles', 'data-k': 'spotify-titles' },
-      h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, query && scan && scan.done ? String(availableCatalog.length) : total ? String(total) : '')),
+      h('div', { class: 'offline-heading' }, h('h3', null, t('of_songs')), h('span', { class: 'offline-count' }, scan && scan.done ? String(availableCatalog.length) : total ? String(total) : '')),
       h('div', { class: 'search offline-title-search' }, icon('search'), h('input', { class: 'input', type: 'search', placeholder: t('search'), 'aria-label': t('search'), value: rawQuery, 'data-k': 'offline-title-search',
         oninput: function (e) { offlineTitleSearches[pageKey] = e.target.value; offlineTitleSearchOffsets[pageKey] = 0; offlineUnavailableOffsets[pageKey] = 0; render(); } })),
       h('label', { class: 'offline-filter' }, h('input', { type: 'checkbox', checked: offlineShowUnavailable, 'data-k': 'show-unavailable',
         onchange: function (e) { offlineShowUnavailable = e.target.checked; lsSet('oj.offline.unavailable', offlineShowUnavailable ? '1' : '0'); render(); } }), h('span', null, t('of_show_unavailable'))),
-      !offlineShowUnavailable && unavailableCount ? h('p', { class: 'small muted', 'data-k': 'offline-hidden' }, t('of_hidden_unavailable', unavailableCount)) : null,
-      !offlineShowUnavailable && !query && tracks.length && unavailableCount === tracks.length ? h('p', { class: 'small muted', 'data-k': 'offline-filter-empty' }, t('of_filtered_empty')) : null,
+      !offlineShowUnavailable && hiddenUnavailableCount ? h('p', { class: 'small muted', 'data-k': 'offline-hidden' }, t('of_hidden_unavailable', hiddenUnavailableCount)) : null,
       !metadataReady ? h('p', { class: 'small muted' }, t('of_titles_login'), ' ', h('a', { href: '#/settings/spotify' }, t('of_connect'))) : null,
-      scan && !scan.done && query ? h('div', { class: 'offline-progress offline-scan-progress', role: 'status', 'data-k': 'title-search-progress' }, h('p', { class: 'small muted' }, t('of_titles_loading') + ' · ' + scanLoaded + ' / ' + total), h('progress', { max: Math.max(1, total), value: scanLoaded, 'aria-label': t('of_titles_loading') })) : null,
-      meta.phase === 'loading' && !tracks.length && !query ? h('p', { class: 'small muted', role: 'status' }, t('of_titles_loading')) : null,
-      meta.phase === 'error' ? h('div', { class: 'offline-notice', role: 'alert' }, offlineErrorText(meta.error, 'metadata'),
+      scan && !scan.done && !scan.error ? h('div', { class: 'offline-progress offline-scan-progress', role: 'status', 'data-k': 'title-search-progress' }, h('p', { class: 'small muted' }, t('of_titles_loading') + ' · ' + scanLoaded + ' / ' + total), h('progress', { max: Math.max(1, total), value: scanLoaded, 'aria-label': t('of_titles_loading') })) : null,
+      meta.phase === 'error' && !(scan && scan.error) ? h('div', { class: 'offline-notice', role: 'alert' }, offlineErrorText(meta.error, 'metadata'),
         h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, offset, true); } }, t('of_retry'))) : null,
-      scan && scan.error && query && !offlineShowUnavailable ? h('div', { class: 'offline-notice', role: 'alert', 'data-k': 'title-scan-error' }, offlineErrorText(scan.error, 'metadata'), h('button', { class: 'btn ghost', onclick: retryScan }, t('of_retry'))) : null,
+      scan && scan.error ? h('div', { class: 'offline-notice', role: 'alert', 'data-k': 'title-scan-error' }, offlineErrorText(scan.error, 'metadata'), h('button', { class: 'btn ghost', onclick: retryScan }, t('of_retry'))) : null,
       query && scan && scan.done && !availableCatalog.length ? h('p', { class: 'small muted', 'data-k': 'offline-search-empty' }, t('of_search_empty')) : null,
       pageRows.length ? h('ol', { class: 'offline-tracks', start: pageStart + 1, 'data-k': 'offline-tracks' }, pageRows.map(function (item) { return trackRow(item, false); })) : null,
-      !query && tracks.length && !pageRows.length && !unavailableCount ? h('p', { class: 'small muted' }, t('of_filtered_empty')) : null,
+      scan && scan.done && !query && !availableCatalog.length ? h('p', { class: 'small muted' }, t('of_filtered_empty')) : null,
       !scan && metadataReady && !meta.phase ? h('button', { class: 'btn ghost', onclick: function () { askSpotifyTitles(id, 0, true); } }, t('of_load_titles')) : null,
-      query && scan && scan.done && availableCatalog.length > 50 || !query && tracks.length && (offset > 0 || offset + tracks.length < total) ? h('div', { class: 'offline-paging', 'data-k': 'available-paging' },
+      scan && scan.done && availableCatalog.length > 50 ? h('div', { class: 'offline-paging', 'data-k': 'available-paging' },
         h('button', { class: 'btn ghost', disabled: pageStart === 0 || (scan && !scan.done), onclick: function () {
-          if (query) { offlineTitleSearchOffsets[pageKey] = Math.max(0, searchOffset - 50); render(); } else pageTo(0, true);
+          if (query) offlineTitleSearchOffsets[pageKey] = Math.max(0, searchOffset - 50);
+          else offlineAvailableOffsets[pageKey] = Math.max(0, availableOffset - 50);
+          render();
         } }, t('of_previous')),
-        h('span', { class: 'small muted' }, (pageStart + 1) + '–' + (query ? Math.min(pageStart + pageRows.length, pageCount) : Math.min(offset + tracks.length, total)) + ' / ' + pageCount),
-        h('button', { class: 'btn ghost', disabled: (query ? pageStart + 50 >= pageCount : offset + tracks.length >= total) || (scan && !scan.done), onclick: function () {
-          if (query) { offlineTitleSearchOffsets[pageKey] = searchOffset + 50; render(); } else pageTo(offset + tracks.length, false);
+        h('span', { class: 'small muted' }, (pageStart + 1) + '–' + Math.min(pageStart + pageRows.length, pageCount) + ' / ' + pageCount),
+        h('button', { class: 'btn ghost', disabled: pageStart + 50 >= pageCount, onclick: function () {
+          if (query) offlineTitleSearchOffsets[pageKey] = searchOffset + 50;
+          else offlineAvailableOffsets[pageKey] = availableOffset + 50;
+          render();
         } }, t('of_next'))) : null,
       offlineShowUnavailable ? h('section', { class: 'spotify-titles spotify-unavailable', 'data-k': 'unavailable-list' },
         h('div', { class: 'offline-heading' }, h('h3', null, t('of_unavailable_list')), h('span', { class: 'offline-count' }, scan && scan.done ? String(unavailableCatalog.length) : '')),
-        !metadataReady ? null : scan && !scan.done && !scan.error ? h('div', { class: 'offline-progress offline-scan-progress', role: 'status', 'data-k': 'unavailable-progress' },
-          h('p', { class: 'small muted' }, t('of_titles_loading') + ' · ' + scanLoaded + ' / ' + total), h('progress', { max: Math.max(1, total), value: scanLoaded, 'aria-label': t('of_titles_loading') })) : null,
-        scan && scan.error ? h('div', { class: 'offline-notice', role: 'alert', 'data-k': 'unavailable-scan-error' }, offlineErrorText(scan.error, 'metadata'), h('button', { class: 'btn ghost', onclick: retryScan }, t('of_retry'))) : null,
         scan && scan.done && !unavailableCatalog.length ? h('p', { class: 'small muted' }, query ? t('of_search_empty') : t('of_unavailable_none')) : null,
         scan && scan.done && unavailableCatalog.length ? h('ol', { class: 'offline-tracks', start: unavailableOffset + 1, 'data-k': 'offline-unavailable-tracks' }, unavailableCatalog.slice(unavailableOffset, unavailableOffset + 50).map(function (item) { return trackRow(item, true); })) : null,
         scan && scan.done && unavailableCatalog.length > 50 ? h('div', { class: 'offline-paging', 'data-k': 'unavailable-paging' },
@@ -2643,7 +2638,7 @@
       titleBlock);
   }
   var offlineShowUnavailable = lsGet('oj.offline.unavailable') === '1';
-  var offlineTitleScans = {}, offlineTitleSearches = {}, offlineTitleSearchOffsets = {}, offlineUnavailableOffsets = {};
+  var offlineTitleScans = {}, offlineTitleSearches = {}, offlineTitleSearchOffsets = {}, offlineAvailableOffsets = {}, offlineUnavailableOffsets = {};
   function spotifyTrackUnavailable(track) { return !track.cached && !!track.problem; }
   // Metadata pages survive reloads. Audio availability always comes from the current account.
   var offlineTitleAccountId = null;
@@ -2653,7 +2648,7 @@
     if (!account && !o.catalog_loaded) return;
     if (offlineTitleAccountId === account) return;
     offlineTitleAccountId = account;
-    offlineTitleScans = {}; offlineTitleSearches = {}; offlineTitleSearchOffsets = {}; offlineUnavailableOffsets = {};
+    offlineTitleScans = {}; offlineTitleSearches = {}; offlineTitleSearchOffsets = {}; offlineAvailableOffsets = {}; offlineUnavailableOffsets = {};
     try {
       var prefix = offlineTitlePrefix();
       Object.keys(localStorage).forEach(function (k) {
@@ -2669,7 +2664,7 @@
       var prefix = account + ':' + uri + ':';
       Object.keys(offlinePreviewCache).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlinePreviewCache[k]; });
       Object.keys(offlineTitleScans).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlineTitleScans[k]; });
-      [offlineTitleSearches, offlineTitleSearchOffsets, offlineUnavailableOffsets].forEach(function (map) {
+      [offlineTitleSearches, offlineTitleSearchOffsets, offlineAvailableOffsets, offlineUnavailableOffsets].forEach(function (map) {
         Object.keys(map).forEach(function (k) { if (k.indexOf(prefix) === 0) delete map[k]; });
       });
       offlinePreviewAsked = {};

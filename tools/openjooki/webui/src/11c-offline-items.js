@@ -1,5 +1,5 @@
   var offlineShowUnavailable = lsGet('oj.offline.unavailable') === '1';
-  var offlineTitleScans = {}, offlineTitleSearches = {}, offlineTitleSearchOffsets = {}, offlineUnavailableOffsets = {};
+  var offlineTitleScans = {}, offlineTitleSearches = {}, offlineTitleSearchOffsets = {}, offlineAvailableOffsets = {}, offlineUnavailableOffsets = {};
   function spotifyTrackUnavailable(track) { return !track.cached && !!track.problem; }
   // Metadata pages survive reloads. Audio availability always comes from the current account.
   var offlineTitleAccountId = null;
@@ -9,7 +9,7 @@
     if (!account && !o.catalog_loaded) return;
     if (offlineTitleAccountId === account) return;
     offlineTitleAccountId = account;
-    offlineTitleScans = {}; offlineTitleSearches = {}; offlineTitleSearchOffsets = {}; offlineUnavailableOffsets = {};
+    offlineTitleScans = {}; offlineTitleSearches = {}; offlineTitleSearchOffsets = {}; offlineAvailableOffsets = {}; offlineUnavailableOffsets = {};
     try {
       var prefix = offlineTitlePrefix();
       Object.keys(localStorage).forEach(function (k) {
@@ -25,7 +25,7 @@
       var prefix = account + ':' + uri + ':';
       Object.keys(offlinePreviewCache).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlinePreviewCache[k]; });
       Object.keys(offlineTitleScans).forEach(function (k) { if (k.indexOf(prefix) === 0) delete offlineTitleScans[k]; });
-      [offlineTitleSearches, offlineTitleSearchOffsets, offlineUnavailableOffsets].forEach(function (map) {
+      [offlineTitleSearches, offlineTitleSearchOffsets, offlineAvailableOffsets, offlineUnavailableOffsets].forEach(function (map) {
         Object.keys(map).forEach(function (k) { if (k.indexOf(prefix) === 0) delete map[k]; });
       });
       offlinePreviewAsked = {};
